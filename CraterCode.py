@@ -19,9 +19,12 @@ zfactor = 10 #set factor to multiply random noise by
 ## Set up a LandLab model grid object, with random topographic noise on the order of "zfactor"  
 mg = RasterModelGrid((xy,xy), xy_spacing = spacing); #see above for variables
 z = mg.add_zeros('topographic__elevation', at='node') #create an array of zeros for each node of the model grid
-#### add noise to the surface
-noise = values.random(mg, "topographic__elevation", at='node', where=NodeStatus.CORE, distribution='uniform', high=z.max()*0.75, low=z.max()*0.25)
-#### increase the zfactor to 10 to get realistic values of noisy elevation relative to the crater
+#### Add noise to the surface
+rf = 0.1 #randomness factor (how rough initial terrain is)
+np.random.seed(30) # Keep this constant (e.g., at 30) so the initial randomness it always the same
+noise = (np.random.rand(mg.number_of_nodes)) #between 0 and 1
+z += (noise) * rf #if you need a multiplier
+#### Increase the zfactor to 10 to get realistic values of noisy elevation relative to the crater
 mg.at_node["topographic__elevation"] *= zfactor 
 
 figure() #show the model grid, values of elevation
@@ -39,6 +42,7 @@ imshow_grid(mg, 'topographic__elevation',
 def weighted_choice_sub(weights):
     ''' randomly generate a number and see which weight number in the input list it falls under,
     return the index of that weight '''
+    rdm.seed(25)
     rnd = random.random() * sum(weights)
     for i, w in enumerate(weights):
         rnd -= w
@@ -109,6 +113,7 @@ for D in range(minD, maxD):
     
     
 count = 0
+rdm.seed(50) #Chose random seed number 50 (this ensures crater locations are same every time)
 for i in range(Ncraters): #For N number of craters
     count += 1
     a = weighted_choice(NDs); 
@@ -120,12 +125,14 @@ for i in range(Ncraters): #For N number of craters
     crater_depth(d, diameter, mg, d_ref = 7)
 
     if count%500 == 0:
+        hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create hillshade file
         figure() #show the model grid, values of elevation
-        imshow_grid(mg, 'topographic__elevation', 
-                    plot_name= 'Cratered Topography', 
-                    symmetric_cbar=False, cmap=cmap,
-                    allow_colorbar=True, colorbar_label='Elevation [m]',
-                    shrink=1.,
-                    color_for_closed='black',
-                    color_for_background=None,            
-                    show_elements=False)  
+        imshow_grid(mg,hs,cmap=cmap,allow_colorbar=False) # Easier to vizualize for now?
+        #imshow_grid(mg, 'topographic__elevation', # this is for visualizing topography (no hillshade; maybe can add on top as transparent layer?)
+                    #plot_name= 'Cratered Topography', 
+                    #symmetric_cbar=False, cmap=cmap,
+                    #allow_colorbar=True, colorbar_label='Elevation [m]',
+                    #shrink=1.,
+                    #color_for_closed='black',
+                    #color_for_background=None,            
+                    #show_elements=False)  
