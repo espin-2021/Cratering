@@ -14,8 +14,6 @@ cmap = "Greys_r"  # old craters in gray (reversed color map)
 cmap1 = "Greys" # (Greys, as is - i.e. not reversed)
 cmap2 = "Spectral_r" # (Spectral, reversed)
 
-
-
 # Define some Variables!
 xy = 200  # Set the number of nodes in both x and y space
 spacing = 1
@@ -100,7 +98,7 @@ for i in range(1, nsteps):
     hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create a hillshade array
     hill = np.reshape(hs, (xy, xy)) #reshape the hillshade array to be the same shape as the topo array
     img1 = ax[0].imshow(hill, cmap=cmap1, alpha=1, vmin=zmin, vmax=zmax)
-    img2 = ax[0].imshow(topo, cmap=cmap2, alpha=0.6, vmin=zmin, vmax=zmax)
+    img2 = ax[0].imshow(topo, cmap=cmap2, alpha=0.4, vmin=zmin, vmax=zmax)
     ax[0].set_title('Topography overlain on Hillshade')
     cbar = plt.colorbar(img2, fraction=0.045, ax=ax[0], label = "Topography [m]")
     cbar.set_label('Elevation [m]')
@@ -111,7 +109,10 @@ for i in range(1, nsteps):
     ax[0].set_xlim([0, xy])
     ax[0].set_ylim([0, xy])
 
-    ax[1].plot(topo[stk, :], c=[0, 0, 0])
+    ax[1].plot(_arr[stk, :], c=[0, 0, 0], zorder=10)
+    for j in range(old_arr.shape[0]):
+        if np.sum(old_arr[j, :]) != 0:
+            ax[1].plot(old_arr[j, :], c=[1-j/nsteps, 1-j/nsteps, 1-j/nsteps])
     ax[1].set_title('Topographic Section at Y = ' + str(stk))
     ax[1].set_ylabel('Topography [m]')
     ax[1].set_xlabel('Distance along X')
