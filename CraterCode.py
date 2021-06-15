@@ -7,9 +7,12 @@
 import numpy as np
 from landlab import RasterModelGrid, imshow_grid, NodeStatus, values
 import random as rdm
+import matplotlib as mpl
 
 ##Set the colourmap
-cmap = "Greys_r"; cmap2 = "bone";
+#cmap = "Greys_r"; cmap2 = "bone";
+cmap =  mpl.cm.get_cmap("Greys_r").copy()
+cmap2 = mpl.cm.get_cmap("bone").copy()
 
 ### Define some Variables!
 xy = 200 #Set the number of nodes in both x and y space
@@ -27,7 +30,7 @@ z += (noise) * rf #if you need a multiplier
 #### Increase the zfactor to 10 to get realistic values of noisy elevation relative to the crater
 mg.at_node["topographic__elevation"] *= zfactor 
 
-figure() #show the model grid, values of elevation
+mpl.pyplot.figure() #show the model grid, values of elevation
 imshow_grid(mg, 'topographic__elevation', 
             plot_name= 'Initial Topography', 
             symmetric_cbar=False, cmap=cmap,
@@ -43,7 +46,7 @@ def weighted_choice_sub(weights):
     ''' randomly generate a number and see which weight number in the input list it falls under,
     return the index of that weight '''
     rdm.seed(25)
-    rnd = random.random() * sum(weights)
+    rnd = rdm.random() * sum(weights)
     for i, w in enumerate(weights):
         rnd -= w
         if rnd < 0:
@@ -116,7 +119,7 @@ count = 0
 rdm.seed(50) #Chose random seed number 50 (this ensures crater locations are same every time)
 for i in range(Ncraters): #For N number of craters
     count += 1
-    a = weighted_choice(NDs); 
+    a = weighted_choice_sub(NDs); 
     diameter = list(range(minD, maxD))[a]
     #print(diameter)
     cratercenter = (rdm.randint(1, xy), rdm.randint(1, xy))
@@ -126,7 +129,7 @@ for i in range(Ncraters): #For N number of craters
 
     if count%500 == 0:
         hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create hillshade file
-        figure() #show the model grid, values of elevation
+        mpl.pyplot.figure() #show the model grid, values of elevation
         imshow_grid(mg,hs,cmap=cmap,allow_colorbar=False) # Easier to vizualize for now?
         #imshow_grid(mg, 'topographic__elevation', # this is for visualizing topography (no hillshade; maybe can add on top as transparent layer?)
                     #plot_name= 'Cratered Topography', 
