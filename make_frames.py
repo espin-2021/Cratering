@@ -10,7 +10,9 @@ import matplotlib.pyplot as plt
 np.random.seed(1023)
 
 # Set the colourmap
-cmap = "Greys_r"  # old craters in gray
+cmap = "Greys_r"  # old craters in gray (reversed color map)
+cmap1 = "Greys" # (Greys, as is - i.e. not reversed)
+cmap2 = "Spectral_r" # (Spectral, reversed)
 
 # Define some Variables!
 xy = 200  # Set the number of nodes in both x and y space
@@ -58,19 +60,22 @@ zmax = 20
 
 # loop to make time-series frames
 fig, ax = plt.subplots(1, 2, dpi=250, facecolor='w', figsize=(8, 3))
-_arr = mg.field_values('node', 'topographic__elevation').reshape((xy, xy))
-img = ax[0].imshow(_arr, cmap=cmap, vmin=zmin, vmax=zmax)
-ax[0].set_title('Topography')
-cbar = plt.colorbar(img, fraction=0.045, ax=ax[0])
+topo = mg.field_values('node', 'topographic__elevation').reshape((xy, xy)) #create an array of elevation values across the mg domain
+hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create a hillshade array
+hill = np.reshape(hs, (xy, xy)) #reshape the hillshade array to be the same shape as the topo array
+img1 = ax[0].imshow(hill, cmap=cmap1, alpha=1, vmin=zmin, vmax=zmax)
+img2 = ax[0].imshow(topo, cmap=cmap2, alpha=0.6, vmin=zmin, vmax=zmax)
+ax[0].set_title('Topography overlain on Hillshade')
+cbar = plt.colorbar(img2, fraction=0.045, ax=ax[0], label = "Topography [m]")
 cbar.set_label('Elevation [m]')
 ax[0].set_xlabel('X')
 ax[0].set_ylabel('Y')
 ax[0].plot(np.linspace(0, xy), np.ones_like(np.linspace(0, xy))*stk,
-           c='r', linestyle='--')
+           c='k', linestyle='--')
 ax[0].set_xlim([0, xy])
 ax[0].set_ylim([0, xy])
 
-ax[1].plot(_arr[stk, :], c=[0, 0, 0])
+ax[1].plot(topo[stk, :], c=[0, 0, 0])
 ax[1].set_title('Topographic Section at Y = ' + str(stk))
 ax[1].set_ylabel('Topography [m]')
 ax[1].set_xlabel('Distance along X')
@@ -89,15 +94,18 @@ for i in range(1, nsteps):
 
     # update plot
     fig, ax = plt.subplots(1, 2, dpi=250, facecolor='w', figsize=(8, 3))
-    _arr = mg.field_values('node', 'topographic__elevation').reshape((xy, xy))
-    img = ax[0].imshow(_arr, cmap=cmap, vmin=zmin, vmax=zmax)
-    ax[0].set_title('Topography after ' + str(Ncraters*i) + ' impacts')
-    cbar = plt.colorbar(img, fraction=0.045, ax=ax[0])
+    topo = mg.field_values('node', 'topographic__elevation').reshape((xy, xy)) #create an array of elevation values across the mg domain
+    hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create a hillshade array
+    hill = np.reshape(hs, (xy, xy)) #reshape the hillshade array to be the same shape as the topo array
+    img1 = ax[0].imshow(hill, cmap=cmap1, alpha=1, vmin=zmin, vmax=zmax)
+    img2 = ax[0].imshow(topo, cmap=cmap2, alpha=0.4, vmin=zmin, vmax=zmax)
+    ax[0].set_title('Topography overlain on Hillshade')
+    cbar = plt.colorbar(img2, fraction=0.045, ax=ax[0], label = "Topography [m]")
     cbar.set_label('Elevation [m]')
     ax[0].set_xlabel('X')
     ax[0].set_ylabel('Y')
     ax[0].plot(np.linspace(0, xy), np.ones_like(np.linspace(0, xy))*stk,
-               c='r', linestyle='--')
+               c='k', linestyle='--')
     ax[0].set_xlim([0, xy])
     ax[0].set_ylim([0, xy])
 
@@ -108,11 +116,10 @@ for i in range(1, nsteps):
     ax[1].set_title('Topographic Section at Y = ' + str(stk))
     ax[1].set_ylabel('Topography [m]')
     ax[1].set_xlabel('Distance along X')
-    ax[1].legend(['New Topo', 'Old Topo'])
     ax[1].set_ylim([zmin, zmax])
 
     plt.tight_layout()
-    plt.savefig('figs/' + str(i).zfill(4) + '.png', bbox_inches='tight')
+    plt.savefig('figs/' + '0'.zfill(4) + '.png', bbox_inches='tight')    
 
     # retain old array section
     old_arr[i, :] = _arr[stk, :]
