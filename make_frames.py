@@ -3,7 +3,7 @@
 import os
 import numpy as np
 from landlab import RasterModelGrid, NodeStatus, values
-from crater_functions import weighted_choice_sub, crater_depth, do_cratering
+from crater_functions import do_cratering
 import matplotlib.pyplot as plt
 
 # fix random seed
@@ -32,7 +32,8 @@ mg.at_node["topographic__elevation"] *= zfactor
 # Set the "distribution" as weights, and choose a value from those weights
 Kx = 1.0  # Scaling coefficient
 delta = 2.0  # km, scaling exponent
-Ncraters = 100  # Number of craters to add
+#Ncraters = 100  # Number of craters to add
+Ncraters = int(input("How many craters do you want to add? ")) # see console to add your own number!
 # int(spacing*3) # min diameter (m), xy_spacing times 3
 # i.e. more tha 3 cells in diameter
 minD = 1
@@ -86,7 +87,7 @@ plt.savefig('figs/' + '0'.zfill(4) + '.png', bbox_inches='tight')
 
 # store old topo sections
 old_arr = np.zeros((nsteps, xy))
-old_arr[0, :] = _arr[:, stk]
+old_arr[0, :] = topo[:, stk]
 
 for i in range(1, nsteps):
     # crater landscape
@@ -97,9 +98,9 @@ for i in range(1, nsteps):
     topo = mg.field_values('node', 'topographic__elevation').reshape((xy, xy)) #create an array of elevation values across the mg domain
     hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create a hillshade array
     hill = np.reshape(hs, (xy, xy)) #reshape the hillshade array to be the same shape as the topo array
-    img1 = ax[0].imshow(hill, cmap=cmap1, alpha=1, vmin=zmin, vmax=zmax)
-    img2 = ax[0].imshow(topo, cmap=cmap2, alpha=0.4, vmin=zmin, vmax=zmax)
-    ax[0].set_title('Topography overlain on Hillshade')
+    img1 = ax[0].imshow(hill, cmap=cmap1, alpha=1, vmin=0, vmax=1)
+    img2 = ax[0].imshow(topo, cmap=cmap2, alpha=0.6, vmin=zmin, vmax=zmax)
+    ax[0].set_title("Cratered surface evolution (t = %i)" %i)
     cbar = plt.colorbar(img2, fraction=0.045, ax=ax[0], label = "Topography [m]")
     cbar.set_label('Elevation [m]')
     ax[0].set_xlabel('X')
@@ -109,17 +110,17 @@ for i in range(1, nsteps):
     ax[0].set_xlim([0, xy])
     ax[0].set_ylim([0, xy])
 
-    ax[1].plot(_arr[stk, :], c=[0, 0, 0], zorder=10)
+    ax[1].plot(topo[stk, :], c=[0, 0, 0], zorder=10)
     for j in range(old_arr.shape[0]):
         if np.sum(old_arr[j, :]) != 0:
             ax[1].plot(old_arr[j, :], c=[1-j/nsteps, 1-j/nsteps, 1-j/nsteps])
-    ax[1].set_title('Topographic Section at Y = ' + str(stk))
+    ax[1].set_title('Topographic section at Y = ' + str(stk))
     ax[1].set_ylabel('Topography [m]')
     ax[1].set_xlabel('Distance along X')
-    ax[1].set_ylim([zmin, zmax])
+    ax[1].set_ylim() # I think making a dynamic scale is kind of fun, shows how much it changes? Instead of [zmin, zmax]
 
     plt.tight_layout()
     plt.savefig('figs/' + '0'.zfill(4) + '.png', bbox_inches='tight')    
 
     # retain old array section
-    old_arr[i, :] = _arr[stk, :]
+    old_arr[i, :] = topo[stk, :]
