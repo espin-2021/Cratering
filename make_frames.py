@@ -101,7 +101,7 @@ for i in range(1, nsteps):
     ax[0].set_xlim([0, xy])
     ax[0].set_ylim([0, xy])
 
-    ax[1].plot(_arr[:, stk], c=[0, 0, 0], zorder=10)
+    ax[1].plot(_arr[stk, :], c=[0, 0, 0], zorder=10)
     for j in range(old_arr.shape[0]):
         if np.sum(old_arr[j, :]) != 0:
             ax[1].plot(old_arr[j, :], c=[1-j/nsteps, 1-j/nsteps, 1-j/nsteps])
@@ -115,4 +115,4 @@ for i in range(1, nsteps):
     plt.savefig('figs/' + str(i).zfill(4) + '.png', bbox_inches='tight')
 
     # retain old array section
-    old_arr[i, :] = _arr[:, stk]
+    old_arr[i, :] = _arr[stk, :]
