@@ -70,7 +70,7 @@ ax[0].plot(np.linspace(0, xy), np.ones_like(np.linspace(0, xy))*stk,
 ax[0].set_xlim([0, xy])
 ax[0].set_ylim([0, xy])
 
-ax[1].plot(_arr[:, stk], c=[0, 0, 0])
+ax[1].plot(_arr[stk, :], c=[0, 0, 0])
 ax[1].set_title('Topographic Section at Y = ' + str(stk))
 ax[1].set_ylabel('Topography [m]')
 ax[1].set_xlabel('Distance along X')
