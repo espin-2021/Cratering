@@ -91,7 +91,7 @@ old_arr[0, :] = topo[:, stk]
 
 for i in range(1, nsteps):
     # crater landscape
-    mg = do_cratering(Ncraters, NDs, minD, maxD, xy, mg)
+    mg = do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing)
 
     # update plot
     fig, ax = plt.subplots(1, 2, dpi=250, facecolor='w', figsize=(8, 3))

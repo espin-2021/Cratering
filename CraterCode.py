@@ -9,7 +9,7 @@ from landlab import RasterModelGrid, imshow_grid
 import random as rdm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from crater_functions import weighted_choice_sub, crater_depth
+from crater_functions import do_cratering
 
 ##Set the colourmap
 cmap1 =  mpl.cm.get_cmap("Greys_r").copy().reversed()
@@ -17,8 +17,8 @@ cmap2 = mpl.cm.get_cmap("Spectral").copy().reversed()
 
 ### Define some variables for our grid!
 ##################################
-xy = 200 #Set the number of nodes in both x and y space
-spacing = 1
+xy = 500 #Set the number of nodes in both x and y space
+spacing = 2
 zfactor = 10 #set factor to multiply random noise by
 
 ## Set up a LandLab model grid object, with random topographic noise on the order of "zfactor"
@@ -55,13 +55,8 @@ for D in range(minD, maxD):
 Ncraters = int(input("How many craters do you want to add? ")) # see console to add your own number!
 count = 0
 rdm.seed(50) #Chose random seed number 50 (this ensures crater locations are same every time)
-for i in range(Ncraters): #For N number of craters
-    count += 1
-    a = weighted_choice_sub(NDs); 
-    diameter = list(range(minD, maxD))[a]
-    cratercenter = (rdm.randint(1, xy), rdm.randint(1, xy))
-    d = mg.calc_distances_of_nodes_to_point(cratercenter)
-    crater_depth(d, diameter, mg, d_ref = 7)
+mg = do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing)
+
 
 ## Make figure of final cratered surface:
 ##################################
