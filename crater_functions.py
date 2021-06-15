@@ -1,5 +1,6 @@
 """Cratering Functions."""
 import numpy as np
+from landlab import RasterModelGrid
 
 
 def weighted_choice_sub(weights):
@@ -11,6 +12,24 @@ def weighted_choice_sub(weights):
         if rnd < 0:
             return i
 
+def make_noisy_surface(xy,spacing,rf=1):
+    ''' Generate a surface with random topography.
+     Parameters
+    ----------
+    length : integer
+        Number of cells for each axis (i.e., 200 for a 200x200 grid)
+    spacing : integer
+        Size of each cell in km.
+    rf : int, float
+        The multiplier to add to increase or decrease randomness by factor rf. 
+        (randomness factor, default = 1)
+    '''
+    mg = RasterModelGrid((xy,xy), xy_spacing = spacing); #initiate surface; see above for variables
+    z = mg.add_zeros('topographic__elevation', at='node') #create an array of zeros for each node of the model grid
+    np.random.seed(30) # Keep this constant (e.g., at 30) so the initial randomness it always the same
+    z += np.random.rand(mg.number_of_nodes)  # make the noise large enough relative to crater
+    mg.at_node["topographic__elevation"] *= rf 
+    return mg
 
 def crater_depth(d, diameter, mg, d_ref=7):
     """
