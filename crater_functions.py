@@ -68,7 +68,7 @@ def crater_depth(d, diameter, mg, d_ref=7):
     return mg
 
 
-def do_cratering(Ncraters, NDs, minD, maxD, xy, mg):
+def do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing):
     """
     Add craters to some landlab raster model.
 
@@ -102,7 +102,7 @@ def do_cratering(Ncraters, NDs, minD, maxD, xy, mg):
     for i in range(Ncraters):  # For N number of craters
         a = weighted_choice_sub(NDs)
         diameter = list(range(minD, maxD))[a]
-        cratercenter = (np.random.randint(1, xy), np.random.randint(1, xy))
+        cratercenter = (np.random.randint(1, xy*spacing), np.random.randint(1, xy*spacing))
         d = mg.calc_distances_of_nodes_to_point(cratercenter)
 
         crater_depth(d, diameter, mg, d_ref=7)
