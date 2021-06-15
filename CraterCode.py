@@ -7,12 +7,13 @@
 import numpy as np
 from landlab import RasterModelGrid, imshow_grid, NodeStatus, values
 import random as rdm
+import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 ##Set the colourmap
 #cmap = "Greys_r"; cmap2 = "bone";
-cmap =  mpl.cm.get_cmap("Greys_r").copy()
-cmap2 = mpl.cm.get_cmap("bone").copy()
+cmap1 =  mpl.cm.get_cmap("Greys_r").copy().reversed()
+cmap2 = mpl.cm.get_cmap("Spectral").copy().reversed()
 
 ### Define some Variables!
 xy = 200 #Set the number of nodes in both x and y space
@@ -30,10 +31,10 @@ z += (noise) * rf #if you need a multiplier
 #### Increase the zfactor to 10 to get realistic values of noisy elevation relative to the crater
 mg.at_node["topographic__elevation"] *= zfactor 
 
-mpl.pyplot.figure() #show the model grid, values of elevation
+plt.figure() #show the model grid, values of elevation
 imshow_grid(mg, 'topographic__elevation', 
             plot_name= 'Initial Topography', 
-            symmetric_cbar=False, cmap=cmap,
+            symmetric_cbar=False, cmap=cmap2,
             allow_colorbar=True, colorbar_label='Elevation [m]',
             shrink=1.,
             color_for_closed='black',
@@ -45,7 +46,6 @@ imshow_grid(mg, 'topographic__elevation',
 def weighted_choice_sub(weights):
     ''' randomly generate a number and see which weight number in the input list it falls under,
     return the index of that weight '''
-    rdm.seed(25)
     rnd = rdm.random() * sum(weights)
     for i, w in enumerate(weights):
         rnd -= w
@@ -129,8 +129,15 @@ for i in range(Ncraters): #For N number of craters
 
     if count%500 == 0:
         hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create hillshade file
-        mpl.pyplot.figure() #show the model grid, values of elevation
-        imshow_grid(mg,hs,cmap=cmap,allow_colorbar=False) # Easier to vizualize for now?
+        fig, ax = plt.subplots() #show the model grid, values of elevation
+        #imshow_grid(mg,hs,cmap=cmap,allow_colorbar=False) # Easier to vizualize for now?
+        topo = mg.field_values('node', 'topographic__elevation').reshape((xy, xy))
+        hill = hs_arr = np.reshape(hs, (xy, xy))
+        img1 = plt.imshow(hill, cmap=cmap1, alpha=1)
+        img2 = plt.imshow(topo, cmap=cmap2, alpha=0.6)
+        fig.colorbar(img2,ax=ax, label="Topography [m]")
+        plt.show()
+        
         #imshow_grid(mg, 'topographic__elevation', # this is for visualizing topography (no hillshade; maybe can add on top as transparent layer?)
                     #plot_name= 'Cratered Topography', 
                     #symmetric_cbar=False, cmap=cmap,
