@@ -24,7 +24,7 @@ xy = int(size/spacing) # number of nodes
 mg = make_noisy_surface(xy,spacing,rf=1) # rf is randomness factor
 cmap2 = mpl.cm.get_cmap("Spectral").copy().reversed() # pastel blue-red for topography
 fig, ax = plt.subplots() #initiate figure
-imshow_grid(mg, 'topographic__elevation', cmap=cmap2, colorbar_label='Elevation [m?????????]')
+imshow_grid(mg, 'topographic__elevation', cmap=cmap2, colorbar_label='Elevation [km]')
 plt.title("Initial topographic surface")
 plt.xlabel("X [km]"); plt.ylabel("Y [km]")
 plt.show()
@@ -64,7 +64,7 @@ hill = np.reshape(hs, (xy, xy))
 fig, ax = plt.subplots() #initiate figure
 img1 = plt.imshow(hill, cmap=cmap1, alpha=1, extent = [0,size, 0, size])
 img2 = plt.imshow(topo, cmap=cmap2, alpha=0.6, extent = [0,size, 0, size])
-fig.colorbar(img2,ax=ax, label="Elevation [m???????????]")
+fig.colorbar(img2,ax=ax, label="Elevation [km]")
 plt.title("Final cratered surface")
 plt.xlabel("X [km]"); plt.ylabel("Y [km]")
 plt.show()

@@ -21,7 +21,7 @@ def make_noisy_surface(xy,spacing,rf=1):
     spacing : integer
         Size of each cell in km.
     rf : int, float
-        The multiplier to add to increase or decrease randomness by factor rf. 
+        The multiplier (in km) to add to increase or decrease randomness by factor rf. 
         (randomness factor, default = 1)
     '''
     mg = RasterModelGrid((xy,xy), xy_spacing = spacing); #initiate surface; see above for variables
@@ -54,7 +54,9 @@ def crater_depth(d, diameter, mg, d_ref=7):
     mg : landlab.grid.raster.RasterModelGrid
         Landlab raster model grid after crater has modified the topography
     """
-    radius = diameter / 2
+    radius = diameter/2
+    diameter *= 1000
+    d_ref *= 1000
 
     if diameter <= d_ref:
         H1 = 2.54*diameter**0.67
@@ -76,13 +78,13 @@ def crater_depth(d, diameter, mg, d_ref=7):
     incrater = d[d <= radius]
     in_idx = np.where(d <= radius)[0]
     # equation for inside the crater
-    inDepth = H2H1 + H1*((2*incrater)/(diameter))**m
+    inDepth = (H2H1 + H1*((2*(incrater*1000))/(diameter))**m)/1000 #In KM (hence /1000)
     mg.at_node['topographic__elevation'][in_idx] += inDepth
 
     outcrater = d[d > radius]
     out_idx = np.where(d > radius)[0]
     # equation for outside the crater (ejecta!)
-    outDepth = H2*((2*outcrater)/(diameter))**-n
+    outDepth = (H2*((2*(outcrater*1000))/(diameter))**-n)/1000 # IN KM (hence /km)
     mg.at_node['topographic__elevation'][out_idx] += outDepth
     return mg
 
