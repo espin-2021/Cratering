@@ -129,3 +129,36 @@ def do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing):
         crater_depth(d, diameter, mg, d_ref=7)
 
     return mg
+
+def central_crater(mg, diameter, xy, spacing):
+	"""
+	Add a central crater to a Landlab raster model grid
+	
+	Parameters
+	----------
+	mg : Landlab.grid.raster.RasterModelGrid
+	Landlab raster model grid of the landscape
+	
+	diameter: int
+	Diameter of crater to be added at the central node
+	
+	xy : int
+	domain size (# cells) in one direction (domain is square)
+	
+	spacing: int
+	size of spacing between nodes
+	
+	Returns
+	-------
+	mg : landlab.grid.raster.RasterModelGrid
+	Landlab raster model grid after a central crater has modified the topography
+
+	"""
+	
+	## centerpoint = ( (int((xy*spacing)/2), int((xy*spacing)/2)) )
+	## print(centerpoint)
+	d = mg.calc_distances_of_nodes_to_point( (int((xy*spacing)/2), int((xy*spacing)/2)) );
+
+	crater_depth(d, diameter, mg, d_ref=7);
+	
+	return(mg)
