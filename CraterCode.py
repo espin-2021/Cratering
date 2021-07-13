@@ -10,7 +10,7 @@ from landlab import imshow_grid
 import random as rdm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from crater_functions import do_cratering, make_noisy_surface
+from crater_functions import do_cratering, make_noisy_surface, central_crater
 
 ### Define some variables for our grid!
 ##################################
@@ -69,4 +69,19 @@ plt.title("Final cratered surface")
 plt.xlabel("X [km]"); plt.ylabel("Y [km]")
 plt.show()
 
-    
+## Add one central crater!
+##########################
+mg = central_crater(mg, 40, xy, spacing)
+
+## Plot:
+hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create hillshade file
+topo = mg.field_values('node', 'topographic__elevation').reshape((xy, xy))
+hill = np.reshape(hs, (xy, xy))
+
+fig, ax = plt.subplots() #initiate figure
+img1 = plt.imshow(hill, cmap=cmap1, alpha=1, extent = [0,size, 0, size])
+img2 = plt.imshow(topo, cmap=cmap2, alpha=0.6, extent = [0,size, 0, size])
+fig.colorbar(img2,ax=ax, label="Elevation [km]")
+plt.title("Final cratered surface with central crater")
+plt.xlabel("X [km]"); plt.ylabel("Y [km]")
+plt.show()
