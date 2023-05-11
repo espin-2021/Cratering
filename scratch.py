@@ -8,31 +8,50 @@ Created on Thu May 11 07:28:28 2023
 from crater_functions import *
 
 ### Set up parameters of the grid
-grid_size = 500 #grid length distance in km
-spacing = 10 #size of a cell, (km)
-xy = int(grid_size/spacing) #grid length distance, in number of cells
-N_craters = 100 # number of craters to add
+grid_size = 1000 #grid length distance in km
+cell_size = 5 #size of a cell, (km)
+N_craters = 500 # number of craters to add
 cc_d = 400 # diameter of the central crater ('cc'), (km)
-minD = spacing
-maxD = int(grid_size/2)
+minD = 15
+maxD = 200
 Kx = 1.0    #Scaling coefficient (Howard, 2007)
 delta = 2.0 #km, scaling exponent (Howard, 2007)
 
-#### Plot the rough background with a slope:
-mg = make_noisy_surface(xy, spacing, rf=1);
+#### Plot the rough background:
+mg = make_noisy_surface(grid_size, cell_size, rf=1);
 # plot_topo_profile(mg, xy, Title = 'a');
-plot_grid(mg, xy, grid_size, Title='1');
+# plot_grid(mg, grid_size, cell_size, Title='1.1');
 
+## Add craters to the background surface: 
+NDs = []
+for D in range(minD, maxD):
+    ND = Kx * D **-delta;
+    NDs.append(ND);
+
+mg = do_cratering(mg, grid_size, cell_size, N_craters, NDs, minD, maxD, rim = True);
+# plot_topo_profile(mg, xy, Title = 'b');
+plot_grid(mg, grid_size, cell_size, Title='1.2');
+
+# ## Add a central crater:
+# mg = central_crater(mg, 250, grid_size, cell_size, rim = True);
+# plot_grid(mg, grid_size, cell_size, Title='1.3');
+
+
+### Testing the rimless crater code:
+mg2 = make_noisy_surface(grid_size, cell_size, rf=1);
+# plot_topo_profile(mg, xy, Title = 'a');
+# plot_grid(mg2, grid_size, cell_size, Title='2.1');
+
+## Add craters to the background surface: 
 NDs = []
 for D in range(minD, maxD):
     ND = Kx * D **-delta
     NDs.append(ND)
-
-## Add craters to the background surface: 
-mg = do_cratering(N_craters, NDs, minD, maxD, xy, mg, spacing);
+    
+mg2 = do_cratering(mg2, grid_size, cell_size, N_craters, NDs, minD, maxD, rim = True);
 # plot_topo_profile(mg, xy, Title = 'b');
-plot_grid(mg, xy, grid_size, Title='2');
+plot_grid(mg2, grid_size, cell_size, Title='2.2');
 
-## Add a central crater
-mg = central_crater(mg, 250, xy, spacing, rim = True);
-plot_grid(mg, xy, grid_size, Title='3');
+# # ## Add a central crater:
+# # mg2 = central_crater(mg2, 250, grid_size, cell_size, rim = False);
+# # plot_grid(mg2, grid_size, cell_size, Title='2.3');

@@ -14,31 +14,44 @@ import craterstats as cst
 from landlab import RasterModelGrid
 from landlab import imshow_grid
 
-np.random.seed(1); ## set the numpy random seed to be consistent
-rn_gen = np.random.default_rng() ## create an instance of the Generator class
+
+rn_gen = np.random.default_rng(seed=3);
 
 def weighted_choice_sub(weights):
     ''' randomly generate a number and see which weight number in the input list it falls under,
     return the index of that weight '''
-    rnd = rn_gen.random() * sum(weights)
+    
+    rnd = rn_gen.random(1) * sum(weights)
     for i, w in enumerate(weights):
         rnd -= w
         if rnd < 0:
             return i
 
-def make_noisy_surface(xy,spacing,rf=1):
+def make_noisy_surface(grid_size, cell_size, rf=1):
     ''' Generate a surface with random topography.
      Parameters
     ----------
-    length : integer
-        Number of cells for each axis (i.e., 200 for a 200x200 grid)
-    spacing : integer
+    grid size : integer
+        Size of the domain, in km 
+        (note: domain is square so length = width)
+    
+    cell_size : integer
         Size of each cell in km.
+    
     rf : int, float
         The multiplier (in km) to add to increase or decrease randomness by factor rf. 
         (randomness factor, default = 1)
+        
+    Returns
+    ----------
+    mg : landlab.grid.raster.RasterModelGrid
+        Landlab raster model grid of the landscape
     '''
-    mg = RasterModelGrid((xy,xy), xy_spacing = spacing); #initiate surface; see above for variables
+    rn_gen = np.random.default_rng(seed=1);
+    
+    xy = int(grid_size / cell_size) ## The number of cells along each axis of the domain (i.e. length in # cells)
+    
+    mg = RasterModelGrid((xy,xy), xy_spacing = cell_size); #initiate surface; see above for variables
     z = mg.add_zeros('topographic__elevation', at='node') #create an array of zeros for each node of the model grid  
     
     z += rn_gen.random(mg.number_of_nodes) # Add random elevation values at each node 
@@ -46,20 +59,22 @@ def make_noisy_surface(xy,spacing,rf=1):
     mg.at_node["topographic__elevation"] *= rf  # make the noise large enough relative to crater
     return mg
 
-def crater_depth(d, diameter, mg, d_ref=7, rim = True):
+
+def crater_depth(mg, d, diameter, d_ref=7, rim = True):
     """
     Define in and out of crater changes to topography.
 
     Parameters
     ----------
+    mg : landlab.grid.raster.RasterModelGrid
+        Landlab raster model grid of the landscape
+   
     d : np.ndarray
         Array of distances of nodes to the center of the crater.
         From `landlab.grid.raster.RasterModelGrid.calc_distances_of_nodes_to_point`
+    
     diameter : int, float
         Diameter of the crater
-    
-    mg : landlab.grid.raster.RasterModelGrid
-        Landlab raster model grid of the landscape
 
     d_ref: int, float
         Diameter at which craters transition from "simple" to "complex" structural type
@@ -120,12 +135,22 @@ def crater_depth(d, diameter, mg, d_ref=7, rim = True):
      
     return mg
 
-def do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing):
+def do_cratering(mg, grid_size, cell_size, Ncraters, NDs, minD, maxD, rim = True):
     """
     Add craters to some landlab raster model.
 
     Parameters
     ----------
+    mg : landlab.grid.raster.RasterModelGrid
+        Landlab raster model grid of the landscape
+        
+    grid size : integer
+        Size of the domain, in km 
+        (note: domain is square so length = width)
+    
+    cell_size : integer
+        Size of each cell in km.
+        
     Ncraters : int
         Number of craters that impact
 
@@ -133,16 +158,13 @@ def do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing):
         List of weights for random sampling
 
     minD : int
-        Minimum crater diameter
+        Minimum crater diameter, km
 
     maxD : int
-        Maximum crater diameter
-
-    xy : int
-        Domain size (# cells) in one direction (domain is square)
-
-    mg : landlab.grid.raster.RasterModelGrid
-        Landlab raster model grid of the landscape
+        Maximum crater diameter, km
+        
+    rim : boolean, default = True
+        whether the crater generated has a crater rim or not. 
 
     Returns
     -------
@@ -150,18 +172,21 @@ def do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing):
         Landlab raster model grid after craters have modified the topography
 
     """
-    grid_size = xy * spacing
+    rn_gen = np.random.default_rng(seed=1); ## create an instance of the Generator class
+    
+    xy = int(grid_size / cell_size);
+
     for i in range(Ncraters):  # For N number of craters
         a = weighted_choice_sub(NDs)
         diameter = list(range(minD, maxD))[a]
         cratercenter = (rn_gen.integers(1, grid_size, endpoint=True), rn_gen.integers(1, grid_size, endpoint = True))
         d = mg.calc_distances_of_nodes_to_point(cratercenter)
 
-        crater_depth(d, diameter, mg, d_ref=7)
+        crater_depth(mg, d, diameter, d_ref=7, rim = rim)
 
     return mg
 
-def central_crater(mg, diameter, xy, spacing, rim = True):
+def central_crater(mg, diameter, grid_size, cell_size, rim = True):
 	"""
 	Add a central crater to a Landlab raster model grid
 	
@@ -173,11 +198,12 @@ def central_crater(mg, diameter, xy, spacing, rim = True):
 	diameter: int
 	Diameter of crater to be added at the central node
 	
-	xy : int
-	domain size (# cells) in one direction (domain is square)
-	
-	spacing: int
-	size of spacing between nodes
+    grid size : integer
+        Size of the domain, in km 
+        (note: domain is square so length = width)
+    
+    cell_size : integer
+        Size of each cell in km.
     
     rim : boolean, default = True
 	whether or not the central crater has a rim (True) or no rim (False). 
@@ -189,25 +215,28 @@ def central_crater(mg, diameter, xy, spacing, rim = True):
 	Landlab raster model grid after a central crater has modified the topography
 
 	"""
-	
-	## centerpoint = ( (int((xy*spacing)/2), int((xy*spacing)/2)) )
-	## print(centerpoint)
-	d = mg.calc_distances_of_nodes_to_point( (int((xy*spacing)/2), int((xy*spacing)/2)) );
+	xy = int( grid_size / cell_size);
 
-	crater_depth(d, diameter, mg, d_ref=7, rim = rim);
+	d = mg.calc_distances_of_nodes_to_point( (int((grid_size)/2), int((grid_size)/2)) );
+
+	crater_depth(mg, d, diameter, d_ref=7, rim = rim);
 	
 	return(mg)
 
-def plot_topo_profile(mg, xy, Title = 'Title'):
+def plot_topo_profile(mg, grid_size, cell_size, Title = 'Title'):
     """
     Parameters
 	----------
 	mg : Landlab.grid.raster.RasterModelGrid
 	Landlab raster model grid of the landscape
     
-    xy: int
-    number of nodes along one length of the model grid
+    grid size : integer
+        Size of the domain, in km 
+        (note: domain is square so length = width)
     
+    cell_size : integer
+        Size of each cell in km.
+        
     Title : string
     title to add to the plot
     
@@ -217,6 +246,7 @@ def plot_topo_profile(mg, xy, Title = 'Title'):
     (through the center of the grid).
     
     """
+    xy = int(grid_size / cell_size);
     y = mg.field_values('node', 'topographic__elevation').reshape((xy, xy))[int(xy/2)]; #reshape the topography so it's easy to find the midpoint row (index = xy/2)
     x = (np.arange(xy) + 1); #create the x values (from 1 to xy)
     plt.plot(x, y, 'k-'); #create the plot, with a black line for topography
@@ -224,27 +254,30 @@ def plot_topo_profile(mg, xy, Title = 'Title'):
     plt.show() #display the figure
     
 
-def plot_grid(mg, xy, grid_size, Title='Title'):
+def plot_grid(mg, grid_size, cell_size, Title='Title'):
     """
     Parameters
     ----------
     mg : Landlab.grid.raster.RasterModelGrid
         Landlab raster model grid of the landscape
-        
-    xy : int
-        number of nodes along one length of the model grid
-        
-    grid_size : int
-        length of one side of the model grid
+     
+           grid size : integer
+        Size of the domain, in km 
+        (note: domain is square so length = width)
+    
+    cell_size : integer
+        Size of each cell in km.
     
     Title: string
-        the Title for the plot
+        the title for the plot
 
     Returns
     -------
     None.
 
     """
+    xy = int(grid_size / cell_size);
+    
     cmap2 = mpl.cm.get_cmap("Spectral_r"); #define colour scheme for the topography
     cmap1 = mpl.cm.get_cmap("Greys_r"); #define colour scheme for the hillshade
     
