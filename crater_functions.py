@@ -1,12 +1,26 @@
 """Cratering Functions."""
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib
+import mpl_toolkits.axes_grid1 as axtk
+import os
+import shutil
+import sys
+import yaml
+import warnings
+from packaging import version
+import craterstats as cst
 from landlab import RasterModelGrid
+from landlab import imshow_grid
 
+np.random.seed(1); ## set the numpy random seed to be consistent
+rn_gen = np.random.default_rng() ## create an instance of the Generator class
 
 def weighted_choice_sub(weights):
     ''' randomly generate a number and see which weight number in the input list it falls under,
     return the index of that weight '''
-    rnd = np.random.random() * sum(weights)
+    rnd = rn_gen.random() * sum(weights)
     for i, w in enumerate(weights):
         rnd -= w
         if rnd < 0:
@@ -25,10 +39,11 @@ def make_noisy_surface(xy,spacing,rf=1):
         (randomness factor, default = 1)
     '''
     mg = RasterModelGrid((xy,xy), xy_spacing = spacing); #initiate surface; see above for variables
-    z = mg.add_zeros('topographic__elevation', at='node') #create an array of zeros for each node of the model grid
-    np.random.seed(30) # Keep this constant (e.g., at 30) so the initial randomness it always the same
-    z += np.random.rand(mg.number_of_nodes)  # make the noise large enough relative to crater
-    mg.at_node["topographic__elevation"] *= rf 
+    z = mg.add_zeros('topographic__elevation', at='node') #create an array of zeros for each node of the model grid  
+    
+    z += rn_gen.random(mg.number_of_nodes) # Add random elevation values at each node 
+    
+    mg.at_node["topographic__elevation"] *= rf  # make the noise large enough relative to crater
     return mg
 
 def crater_depth(d, diameter, mg, d_ref=7):
@@ -119,11 +134,11 @@ def do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing):
         Landlab raster model grid after craters have modified the topography
 
     """
-
+    grid_size = xy * spacing
     for i in range(Ncraters):  # For N number of craters
         a = weighted_choice_sub(NDs)
         diameter = list(range(minD, maxD))[a]
-        cratercenter = (np.random.randint(1, xy*spacing), np.random.randint(1, xy*spacing))
+        cratercenter = (rn_gen.integers(1, grid_size, endpoint=True), rn_gen.integers(1, grid_size, endpoint = True))
         d = mg.calc_distances_of_nodes_to_point(cratercenter)
 
         crater_depth(d, diameter, mg, d_ref=7)
@@ -162,3 +177,65 @@ def central_crater(mg, diameter, xy, spacing):
 	crater_depth(d, diameter, mg, d_ref=7);
 	
 	return(mg)
+
+def plot_topo_profile(mg, xy, Title = 'Title'):
+    """
+    Parameters
+	----------
+	mg : Landlab.grid.raster.RasterModelGrid
+	Landlab raster model grid of the landscape
+    
+    xy: int
+    number of nodes along one length of the model grid
+    
+    Title : string
+    title to add to the plot
+    
+    Returns
+    ---------
+    Plot of profile from left to right across the whole model grid width
+    (through the center of the grid).
+    
+    """
+    y = mg.field_values('node', 'topographic__elevation').reshape((xy, xy))[int(xy/2)]; #reshape the topography so it's easy to find the midpoint row (index = xy/2)
+    x = (np.arange(xy) + 1); #create the x values (from 1 to xy)
+    plt.plot(x, y, 'k-'); #create the plot, with a black line for topography
+    plt.title(Title); #add a title
+    plt.show() #display the figure
+    
+
+def plot_grid(mg, xy, grid_size, Title='Title'):
+    """
+    Parameters
+    ----------
+    mg : Landlab.grid.raster.RasterModelGrid
+        Landlab raster model grid of the landscape
+        
+    xy : int
+        number of nodes along one length of the model grid
+        
+    grid_size : int
+        length of one side of the model grid
+    
+    Title: string
+        the Title for the plot
+
+    Returns
+    -------
+    None.
+
+    """
+    cmap2 = mpl.cm.get_cmap("Spectral_r"); #define colour scheme for the topography
+    cmap1 = mpl.cm.get_cmap("Greys_r"); #define colour scheme for the hillshade
+    
+    hs = mg.calc_hillshade_at_node(elevs='topographic__elevation') #create hillshade file
+    topo = mg.field_values('node', 'topographic__elevation').reshape((xy, xy)) #reshape the topography to the right (square) shape for display
+    hill = np.reshape(hs, (xy, xy)); #reshape the hillshade to the right (square) shape for display
+
+    fig, ax = plt.subplots() #initiate figure
+    img1 = plt.imshow(hill, cmap=cmap1, alpha=1, extent = [0,grid_size, 0, grid_size]) #plot hillshade
+    img2 = plt.imshow(topo, cmap=cmap2, alpha=0.6, extent = [0,grid_size, 0, grid_size]) #plot topograpy
+    fig.colorbar(img2,ax=ax, label="Elevation [km]") #add & label the colorbar
+    plt.title(Title); #add a title
+    plt.xlabel("X [km]"); plt.ylabel("Y [km]") #add x and y axis labels
+    plt.show() #show the figure
