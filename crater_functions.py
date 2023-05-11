@@ -46,7 +46,7 @@ def make_noisy_surface(xy,spacing,rf=1):
     mg.at_node["topographic__elevation"] *= rf  # make the noise large enough relative to crater
     return mg
 
-def crater_depth(d, diameter, mg, d_ref=7):
+def crater_depth(d, diameter, mg, d_ref=7, rim = True):
     """
     Define in and out of crater changes to topography.
 
@@ -57,12 +57,16 @@ def crater_depth(d, diameter, mg, d_ref=7):
         From `landlab.grid.raster.RasterModelGrid.calc_distances_of_nodes_to_point`
     diameter : int, float
         Diameter of the crater
+    
     mg : landlab.grid.raster.RasterModelGrid
         Landlab raster model grid of the landscape
 
     d_ref: int, float
         Diameter at which craters transition from "simple" to "complex" structural type
         Default = 7 km (relevant to Mars)
+        
+    rim : boolean, default = True
+        whether the crater generated has a crater rim or not. 
 
     Returns
     -------
@@ -90,19 +94,31 @@ def crater_depth(d, diameter, mg, d_ref=7):
     n = 3
     H2H1 = H2 - H1
 
-    incrater = d[d <= radius]
-    in_idx = np.where(d <= radius)[0]
-    # equation for inside the crater
-    inDepth = (H2H1 + H1*((2*(incrater*1000))/(diameter))**m)/1000 #In KM (hence /1000)
-    mg.at_node['topographic__elevation'][in_idx] += inDepth
-
-    outcrater = d[d > radius]
-    out_idx = np.where(d > radius)[0]
-    # equation for outside the crater (ejecta!)
-    outDepth = (H2*((2*(outcrater*1000))/(diameter))**-n)/1000 # IN KM (hence /km)
-    mg.at_node['topographic__elevation'][out_idx] += outDepth
+    if rim == True: ## (DEFAULT) If the user wants the craters to have a rim
+        incrater = d[d <= radius]
+        in_idx = np.where(d <= radius)[0]
+        # equation for inside the crater
+        inDepth = (H2H1 + H1*((2*(incrater*1000))/(diameter))**m)/1000 #In KM (hence /1000)
+        mg.at_node['topographic__elevation'][in_idx] += inDepth
+    
+        outcrater = d[d > radius]
+        out_idx = np.where(d > radius)[0]
+        # equation for outside the crater (ejecta!)
+        outDepth = (H2*((2*(outcrater*1000))/(diameter))**-n)/1000 # IN KM (hence /km)
+        mg.at_node['topographic__elevation'][out_idx] += outDepth
+    
+    elif rim == False: ## If the user doesn't want the crater to have any rims
+        incrater = d[d <= radius * 0.9] #Only excavate the crater for 90% of the crater radius
+        in_idx = np.where(d <= radius * 0.9)[0] #Only excavate the crater for the first 90% of the crater radius
+        ##90% of the crater radius ensures there's no rim on the crater for craters up to about 500 km in diameter
+        ## For much smaller craters (< 250 km), a smaller value than 90% could be used, but it still makes a reasonable crater
+        
+        # equation for inside the crater
+        inDepth = (H2H1 + H1*((2*(incrater*1000))/(diameter))**m)/1000 #In KM (hence /1000)
+        mg.at_node['topographic__elevation'][in_idx] += inDepth
+    
+     
     return mg
-
 
 def do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing):
     """
@@ -145,7 +161,7 @@ def do_cratering(Ncraters, NDs, minD, maxD, xy, mg, spacing):
 
     return mg
 
-def central_crater(mg, diameter, xy, spacing):
+def central_crater(mg, diameter, xy, spacing, rim = True):
 	"""
 	Add a central crater to a Landlab raster model grid
 	
@@ -162,7 +178,11 @@ def central_crater(mg, diameter, xy, spacing):
 	
 	spacing: int
 	size of spacing between nodes
-	
+    
+    rim : boolean, default = True
+	whether or not the central crater has a rim (True) or no rim (False). 
+    This argument is passed to the function crater_depth
+    
 	Returns
 	-------
 	mg : landlab.grid.raster.RasterModelGrid
@@ -174,7 +194,7 @@ def central_crater(mg, diameter, xy, spacing):
 	## print(centerpoint)
 	d = mg.calc_distances_of_nodes_to_point( (int((xy*spacing)/2), int((xy*spacing)/2)) );
 
-	crater_depth(d, diameter, mg, d_ref=7);
+	crater_depth(d, diameter, mg, d_ref=7, rim = rim);
 	
 	return(mg)
 
