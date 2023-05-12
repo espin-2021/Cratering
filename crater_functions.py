@@ -75,6 +75,7 @@ def weights(minD, maxD):
 #     return the index of that weight '''
 =======
 
+<<<<<<< HEAD
 # def weighted_choice_sub(weights):
 #     """randomly generate a number and see which weight number in the input list it falls under,
 #     return the index of that weight 
@@ -99,6 +100,8 @@ def weights(minD, maxD):
 #         rnd -= w
 #         if rnd < 0:
 #             return i
+=======
+>>>>>>> fea9183a6fc1d1f97d2f3145593be3f93752d9b4
 
 def make_noisy_surface(grid_size, cell_size, rf=1):
     ''' Generate a surface with random topography.
