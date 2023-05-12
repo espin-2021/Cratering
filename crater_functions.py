@@ -81,7 +81,7 @@ def make_noisy_surface(grid_size, cell_size, slope = 0, rf=1):
     ## add slope
     z -= mg.node_x * slope; 
     
-    z += rn_gen.random(mg.number_of_nodes) # Add random elevation values at each node 
+    z += rn_gen.random(mg.number_of_nodes); # Add random elevation values at each node 
     
     mg.at_node["topographic__elevation"] *= rf  # make the noise large enough relative to crater
     return mg
