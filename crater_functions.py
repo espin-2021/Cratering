@@ -17,21 +17,36 @@ from landlab import imshow_grid
 rn_gen = np.random.default_rng(seed=3);
 
 def weights(minD, maxD):
+<<<<<<< HEAD
     """ randomly generate a number and see which weight number in the input list it falls under,
     return the index of that weight 
     Parameters
+=======
+    """randomly generate a number and see which weight number in the input list it falls under,
+    return the index of that weight 
+    Parameters 
+>>>>>>> 5a2fab0c2cfe75fa069e153f358ea24f47c5ee4d
     ----------
     minD : int
         Minimum crater diameter, km
 
     maxD : int
         Maximum crater diameter, km
+<<<<<<< HEAD
     
     Returns
     ----------
     i : ?
     
 
+=======
+        
+    Returns 
+    --------
+    i : ?
+        ?
+        
+>>>>>>> 5a2fab0c2cfe75fa069e153f358ea24f47c5ee4d
     """
     ###  These parameters describe the population frequency for crater diameters:
     Kx = 1.0    #Scaling coefficient (Howard, 2007)
@@ -39,18 +54,45 @@ def weights(minD, maxD):
     
     weights = []
     for D in range(minD, maxD):
+<<<<<<< HEAD
         w = Kx * D **-delta
         weights.append(w)
 
+=======
+        w = Kx * D **-delta;
+        weights.append(w);
+        
+>>>>>>> 5a2fab0c2cfe75fa069e153f358ea24f47c5ee4d
     rnd = rn_gen.random(1) * sum(weights)
-    for i, w in enumerate(weights):
-        rnd -= w
+    for i, ww in enumerate(weights):
+        rnd -= ww
         if rnd < 0:
             return i
 
+<<<<<<< HEAD
 # def weighted_choice_sub(weights):
 #     ''' randomly generate a number and see which weight number in the input list it falls under,
 #     return the index of that weight '''
+=======
+
+# def weighted_choice_sub(weights):
+#     """randomly generate a number and see which weight number in the input list it falls under,
+#     return the index of that weight 
+#     Parameters 
+#     ----------
+#     minD : int
+#         Minimum crater diameter, km
+
+#     maxD : int
+#         Maximum crater diameter, km
+        
+#     Returns 
+#     --------
+#     i : ?
+#         ?
+        
+#     """
+>>>>>>> 5a2fab0c2cfe75fa069e153f358ea24f47c5ee4d
     
 #     rnd = rn_gen.random(1) * sum(weights)
 #     for i, w in enumerate(weights):
@@ -345,7 +387,11 @@ def add_craters1(mg, grid_size, cell_size, Ncraters, minD, maxD, rim = True):
 
     for i in range(Ncraters):  # For N number of craters
         # a = weighted_choice_sub(NDs)
+<<<<<<< HEAD
         a = weights(minD, maxD);
+=======
+        a = weights(minD, maxD)
+>>>>>>> 5a2fab0c2cfe75fa069e153f358ea24f47c5ee4d
         diameter = list(range(minD, maxD))[a]
         cratercenter = (rn_gen.integers(1, grid_size, endpoint=True), rn_gen.integers(1, grid_size, endpoint = True))
         d = mg.calc_distances_of_nodes_to_point(cratercenter)
