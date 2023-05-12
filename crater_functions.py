@@ -17,8 +17,9 @@ from landlab import imshow_grid
 rn_gen = np.random.default_rng(seed=3);
 
 def weights(minD, maxD):
-    """randomly generate a number and see which weight number in the input list it falls under,
+    """ randomly generate a number and see which weight number in the input list it falls under,
     return the index of that weight 
+    
     Parameters 
     ----------
     minD : int
@@ -26,31 +27,28 @@ def weights(minD, maxD):
 
     maxD : int
         Maximum crater diameter, km
-        
-    Returns 
-    --------
+    
+    Returns
+    ----------
     i : ?
-        ?
-        
-    """
+    """ 
+
     ###  These parameters describe the population frequency for crater diameters:
     Kx = 1.0    #Scaling coefficient (Howard, 2007)
     delta = 2.0 #km, scaling exponent (Howard, 2007)
     
     weights = []
     for D in range(minD, maxD):
-        w = Kx * D **-delta;
-        weights.append(w);
-        
+        w = Kx * D **-delta
+        weights.append(w)
+
     rnd = rn_gen.random(1) * sum(weights)
     for i, ww in enumerate(weights):
         rnd -= ww
         if rnd < 0:
             return i
 
-
-
-def make_noisy_surface(grid_size, cell_size, rf=1):
+def make_noisy_surface(grid_size, cell_size, slope = 0, rf=1):
     ''' Generate a surface with random topography.
      Parameters
     ----------
@@ -60,6 +58,9 @@ def make_noisy_surface(grid_size, cell_size, rf=1):
     
     cell_size : integer
         Size of each cell in km.
+        
+    slope: int, float
+        The slope (rise over run) to apply to the model grid (default = 0, i.e. flat surface).
     
     rf : int, float
         The multiplier (in km) to add to increase or decrease randomness by factor rf. 
@@ -77,7 +78,10 @@ def make_noisy_surface(grid_size, cell_size, rf=1):
     mg = RasterModelGrid((xy,xy), xy_spacing = cell_size); #initiate surface; see above for variables
     z = mg.add_zeros('topographic__elevation', at='node') #create an array of zeros for each node of the model grid  
     
-    z += rn_gen.random(mg.number_of_nodes) # Add random elevation values at each node 
+    ## add slope
+    z -= mg.node_x * slope; 
+    
+    z += rn_gen.random(mg.number_of_nodes); # Add random elevation values at each node 
     
     mg.at_node["topographic__elevation"] *= rf  # make the noise large enough relative to crater
     return mg
@@ -336,7 +340,7 @@ def add_craters1(mg, grid_size, cell_size, Ncraters, minD, maxD, rim = True):
     xy = int(grid_size / cell_size);
 
     for i in range(Ncraters):  # For N number of craters
-        a = weights(minD, maxD)
+        a = weights(minD, maxD);
         diameter = list(range(minD, maxD))[a]
         cratercenter = (rn_gen.integers(1, grid_size, endpoint=True), rn_gen.integers(1, grid_size, endpoint = True))
         d = mg.calc_distances_of_nodes_to_point(cratercenter)
