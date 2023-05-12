@@ -49,29 +49,6 @@ def weights(minD, maxD):
             return i
 
 
-# def weighted_choice_sub(weights):
-#     """randomly generate a number and see which weight number in the input list it falls under,
-#     return the index of that weight 
-#     Parameters 
-#     ----------
-#     minD : int
-#         Minimum crater diameter, km
-
-#     maxD : int
-#         Maximum crater diameter, km
-        
-#     Returns 
-#     --------
-#     i : ?
-#         ?
-        
-#     """
-    
-#     rnd = rn_gen.random(1) * sum(weights)
-#     for i, w in enumerate(weights):
-#         rnd -= w
-#         if rnd < 0:
-#             return i
 
 def make_noisy_surface(grid_size, cell_size, rf=1):
     ''' Generate a surface with random topography.
