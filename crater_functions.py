@@ -16,15 +16,62 @@ from landlab import imshow_grid
 
 rn_gen = np.random.default_rng(seed=3);
 
-def weighted_choice_sub(weights):
-    ''' randomly generate a number and see which weight number in the input list it falls under,
-    return the index of that weight '''
+def weights(minD, maxD):
+    """randomly generate a number and see which weight number in the input list it falls under,
+    return the index of that weight 
+    Parameters 
+    ----------
+    minD : int
+        Minimum crater diameter, km
+
+    maxD : int
+        Maximum crater diameter, km
+        
+    Returns 
+    --------
+    i : ?
+        ?
+        
+    """
+    ###  These parameters describe the population frequency for crater diameters:
+    Kx = 1.0    #Scaling coefficient (Howard, 2007)
+    delta = 2.0 #km, scaling exponent (Howard, 2007)
     
+    weights = []
+    for D in range(minD, maxD):
+        w = Kx * D **-delta;
+        weights.append(w);
+        
     rnd = rn_gen.random(1) * sum(weights)
-    for i, w in enumerate(weights):
-        rnd -= w
+    for i, ww in enumerate(weights):
+        rnd -= ww
         if rnd < 0:
             return i
+
+
+# def weighted_choice_sub(weights):
+#     """randomly generate a number and see which weight number in the input list it falls under,
+#     return the index of that weight 
+#     Parameters 
+#     ----------
+#     minD : int
+#         Minimum crater diameter, km
+
+#     maxD : int
+#         Maximum crater diameter, km
+        
+#     Returns 
+#     --------
+#     i : ?
+#         ?
+        
+#     """
+    
+#     rnd = rn_gen.random(1) * sum(weights)
+#     for i, w in enumerate(weights):
+#         rnd -= w
+#         if rnd < 0:
+#             return i
 
 def make_noisy_surface(grid_size, cell_size, rf=1):
     ''' Generate a surface with random topography.
@@ -271,7 +318,7 @@ def generate_CSFD_from_production_function(
     return list_d
 
 
-def add_craters1(mg, grid_size, cell_size, Ncraters, NDs, minD, maxD, rim = True):
+def add_craters1(mg, grid_size, cell_size, Ncraters, minD, maxD, rim = True):
     """
     Add craters to some landlab raster model, using functions "weights" and "crater_depth" 
     NOTE: The function "add_craters2" is a method which adds a more realistic ditribution of craters
@@ -291,9 +338,6 @@ def add_craters1(mg, grid_size, cell_size, Ncraters, NDs, minD, maxD, rim = True
         
     Ncraters : int
         Number of craters that impact
-
-    NDs : list
-        List of weights for random sampling
 
     minD : int
         Minimum crater diameter, km
@@ -315,7 +359,8 @@ def add_craters1(mg, grid_size, cell_size, Ncraters, NDs, minD, maxD, rim = True
     xy = int(grid_size / cell_size);
 
     for i in range(Ncraters):  # For N number of craters
-        a = weighted_choice_sub(NDs)
+        # a = weighted_choice_sub(NDs)
+        a = weights(minD, maxD)
         diameter = list(range(minD, maxD))[a]
         cratercenter = (rn_gen.integers(1, grid_size, endpoint=True), rn_gen.integers(1, grid_size, endpoint = True))
         d = mg.calc_distances_of_nodes_to_point(cratercenter)
