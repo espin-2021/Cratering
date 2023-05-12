@@ -37,12 +37,12 @@ mg = make_noisy_surface(grid_size, cell_size, rf=1);
 
 
 # ## Add craters to the background surface (old method): 
-NDs = []
-for D in range(minD, maxD):
-    ND = Kx * D **-delta;
-    NDs.append(ND);
+# NDs = []
+# for D in range(minD, maxD):
+#     ND = Kx * D **-delta;
+#     NDs.append(ND);
 
-mg2 = add_craters1(mg, grid_size, cell_size, N_craters, NDs, minD, maxD, rim = True)
+mg2 = add_craters1(mg, grid_size, cell_size, N_craters, minD, maxD, rim = True)
 plot_grid(mg2, grid_size, cell_size, Title='1.3');
     
 # ## Add a central crater:
