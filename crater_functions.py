@@ -336,7 +336,6 @@ def add_craters1(mg, grid_size, cell_size, Ncraters, minD, maxD, rim = True):
     xy = int(grid_size / cell_size);
 
     for i in range(Ncraters):  # For N number of craters
-        # a = weighted_choice_sub(NDs)
         a = weights(minD, maxD)
         diameter = list(range(minD, maxD))[a]
         cratercenter = (rn_gen.integers(1, grid_size, endpoint=True), rn_gen.integers(1, grid_size, endpoint = True))
