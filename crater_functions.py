@@ -79,11 +79,12 @@ def make_noisy_surface(grid_size, cell_size, slope = 0, rf=1):
     z = mg.add_zeros('topographic__elevation', at='node') #create an array of zeros for each node of the model grid  
     
     ## add slope
-    z -= mg.node_x * slope; 
-    
-    z += rn_gen.random(mg.number_of_nodes); # Add random elevation values at each node 
-    
+    z -= mg.node_x * slope/100; #.node_x -> left-right slope, .node_y --> top-bottom slope, + vs. - changes direction of slope.
+
+    # Add random elevation values at each node 
+    z += rn_gen.random(mg.number_of_nodes);     
     mg.at_node["topographic__elevation"] *= rf  # make the noise large enough relative to crater
+
     return mg
 
 
@@ -97,11 +98,11 @@ def crater_depth(mg, d, diameter, d_ref=7, rim = True):
         Landlab raster model grid of the landscape
    
     d : np.ndarray
-        Array of distances of nodes to the center of the crater.
+        Array of distances of nodes to the center of the crater (distances in km).
         From `landlab.grid.raster.RasterModelGrid.calc_distances_of_nodes_to_point`
     
     diameter : int, float
-        Diameter of the crater
+        Diameter of the crater (in km)
 
     d_ref: int, float
         Diameter at which craters transition from "simple" to "complex" structural type
@@ -115,49 +116,47 @@ def crater_depth(mg, d, diameter, d_ref=7, rim = True):
     mg : landlab.grid.raster.RasterModelGrid
         Landlab raster model grid after crater has modified the topography
     """
-    radius = diameter/2
-    diameter *= 1000
-    d_ref *= 1000
+    radius = (diameter/2) * 1000; #convert input to meters
+    diameter *= 1000; #convert input to meters
+    d_ref *= 1000; #convert to meters
+    d *= 1000; #convert input to meters
 
-    if diameter <= d_ref:
-        H1 = 2.54*diameter**0.67
-        H2 = 1.93*diameter**0.52
-        m = 0.73*diameter**0.11  # value: 2 to 3
+    if diameter <= d_ref: #for a simple crater
+        H1 = 2.54*diameter**0.67; #crater depth, in meters
+        H2 = 1.93*diameter**0.52; #max rim height, in meters
+        m = 0.73*diameter**0.11;  # value: 2 to 3, exponent for shape
 
-    elif diameter > d_ref:
-        H1 = 12.20*diameter**0.49
-        H2 = 0.79*diameter**0.6
-        m = 0.64*diameter**0.13  # value: 2 to 3
+    elif diameter > d_ref: #for a complex crater
+        H1 = 12.20*diameter**0.49; #crater depth, in meters
+        H2 = 0.79*diameter**0.6; #max rim height, in meters
+        m = 0.64*diameter**0.13;  # value: 2 to 3
 
     # Howard et al, 2007:
     # "The exponent n is constrained such that volume deposited on the rim
     # equals the volume excavated from the bowl and ranges from a value of
     # about 3 for a 7 km crater to 3.5 for a 250 km crater.""
-    n = 3
-    H2H1 = H2 - H1
+    n = 3;
+    H2H1 = H2 - H1; #in meters
 
     if rim == True: ## (DEFAULT) If the user wants the craters to have a rim
-        incrater = d[d <= radius]
-        in_idx = np.where(d <= radius)[0]
+        in_idx = np.where(d <= radius)[0];
         # equation for inside the crater
-        inDepth = (H2H1 + H1*((2*(incrater*1000))/(diameter))**m)/1000 #In KM (hence /1000)
-        mg.at_node['topographic__elevation'][in_idx] += inDepth
+        inDepth = H2H1 + H1*(  (2*d[in_idx])/diameter  )**m; # in meters
+        mg.at_node['topographic__elevation'][in_idx] += inDepth;
     
-        outcrater = d[d > radius]
-        out_idx = np.where(d > radius)[0]
+        out_idx = np.where(d > radius)[0];
         # equation for outside the crater (ejecta!)
-        outDepth = (H2*((2*(outcrater*1000))/(diameter))**-n)/1000 # IN KM (hence /km)
-        mg.at_node['topographic__elevation'][out_idx] += outDepth
+        outDepth = H2*(  (2*d[out_idx])/diameter  )**-n; # in meters
+        mg.at_node['topographic__elevation'][out_idx] += outDepth;
     
     elif rim == False: ## If the user doesn't want the crater to have any rims
-        incrater = d[d <= radius * 0.9] #Only excavate the crater for 90% of the crater radius
-        in_idx = np.where(d <= radius * 0.9)[0] #Only excavate the crater for the first 90% of the crater radius
+        in_idx = np.where(d <= radius * 0.9)[0]; #Only excavate the crater for the first 90% of the crater radius
         ##90% of the crater radius ensures there's no rim on the crater for craters up to about 500 km in diameter
         ## For much smaller craters (< 250 km), a smaller value than 90% could be used, but it still makes a reasonable crater
         
         # equation for inside the crater
-        inDepth = (H2H1 + H1*((2*(incrater*1000))/(diameter))**m)/1000 #In KM (hence /1000)
-        mg.at_node['topographic__elevation'][in_idx] += inDepth
+        inDepth = H2H1 + H1*(  (2*d[in_idx])/(diameter)  )**m; #in meters
+        mg.at_node['topographic__elevation'][in_idx] += inDepth;
     
      
     return mg
