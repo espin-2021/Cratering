@@ -79,7 +79,7 @@ def make_noisy_surface(grid_size, cell_size, slope = 0, rf=1):
     z = mg.add_zeros('topographic__elevation', at='node') #create an array of zeros for each node of the model grid  
     
     ## add slope
-    z -= mg.node_x * slope/100; #.node_x -> left-right slope, .node_y --> top-bottom slope, + vs. - changes direction of slope.
+    z -= mg.node_x * slope/rf; #.node_x -> left-right slope, .node_y --> top-bottom slope, + vs. - changes direction of slope.
 
     # Add random elevation values at each node 
     z += rn_gen.random(mg.number_of_nodes);     
@@ -116,38 +116,36 @@ def crater_depth(mg, d, diameter, d_ref=7, rim = True):
     mg : landlab.grid.raster.RasterModelGrid
         Landlab raster model grid after crater has modified the topography
     """
-    radius = (diameter/2) * 1000; #convert input to meters
     diameter *= 1000; #convert input to meters
-    d_ref *= 1000; #convert to meters
-    d *= 1000; #convert input to meters
+    radius = (diameter/2); #convert input to meters
 
-    if diameter <= d_ref: #for a simple crater
-        H1 = 2.54*diameter**0.67; #crater depth, in meters
-        H2 = 1.93*diameter**0.52; #max rim height, in meters
-        m = 0.73*diameter**0.11;  # value: 2 to 3, exponent for shape
+    if diameter <= 7000: #for a simple crater
+        H1 = 2.54*diameter**0.67; #crater depth, in km
+        H2 = 1.93*diameter**0.52; #max rim height, in km
+        m = 0.73*(diameter)**0.11;  # value: 2 to 3, exponent for shape
 
-    elif diameter > d_ref: #for a complex crater
-        H1 = 12.20*diameter**0.49; #crater depth, in meters
-        H2 = 0.79*diameter**0.6; #max rim height, in meters
-        m = 0.64*diameter**0.13;  # value: 2 to 3
+    elif diameter > 7000: #for a complex crater
+        H1 = 12.20*diameter**0.49; #crater depth, in km
+        H2 = 0.79*diameter**0.6; #max rim height, in km
+        m = 0.64*(diameter)**0.13;  # value: 2 to 3
 
     # Howard et al, 2007:
     # "The exponent n is constrained such that volume deposited on the rim
     # equals the volume excavated from the bowl and ranges from a value of
     # about 3 for a 7 km crater to 3.5 for a 250 km crater.""
     n = 3;
-    H2H1 = H2 - H1; #in meters
+    H2H1 = H2 - H1; #in km
 
     if rim == True: ## (DEFAULT) If the user wants the craters to have a rim
         in_idx = np.where(d <= radius)[0];
         # equation for inside the crater
-        inDepth = H2H1 + H1*(  (2*d[in_idx])/diameter  )**m; # in meters
-        mg.at_node['topographic__elevation'][in_idx] += inDepth;
+        inDepth = H2H1 + H1*(  (2*d[in_idx])/diameter  )**m; # in km
+        mg.at_node['topographic__elevation'][in_idx] += inDepth; ## in m
     
         out_idx = np.where(d > radius)[0];
         # equation for outside the crater (ejecta!)
-        outDepth = H2*(  (2*d[out_idx])/diameter  )**-n; # in meters
-        mg.at_node['topographic__elevation'][out_idx] += outDepth;
+        outDepth = H2*(  (2*d[out_idx])/diameter  )**-n; # in km
+        mg.at_node['topographic__elevation'][out_idx] += outDepth; ## in m
     
     elif rim == False: ## If the user doesn't want the crater to have any rims
         in_idx = np.where(d <= radius * 0.9)[0]; #Only excavate the crater for the first 90% of the crater radius
@@ -155,8 +153,8 @@ def crater_depth(mg, d, diameter, d_ref=7, rim = True):
         ## For much smaller craters (< 250 km), a smaller value than 90% could be used, but it still makes a reasonable crater
         
         # equation for inside the crater
-        inDepth = H2H1 + H1*(  (2*d[in_idx])/(diameter)  )**m; #in meters
-        mg.at_node['topographic__elevation'][in_idx] += inDepth;
+        inDepth = H2H1 + H1*(  (2*d[in_idx])/(diameter)  )**m; #in km
+        mg.at_node['topographic__elevation'][in_idx] += inDepth; ## in m
     
      
     return mg
@@ -394,14 +392,16 @@ def add_craters2(mg, time_interval, size_interval, grid_size, cell_size,
 
     """
     domain_area = grid_size * grid_size;
-    xy = int (grid_size / cell_size);
     
+    print('generating CSFD...');
     diameter_list = generate_CSFD_from_production_function(time_interval, size_interval, domain_area, cell_size,
                                                            poisson_intervals=poisson_intervals);
     
     Ncraters = len(diameter_list);
     
+    print('adding craters...');
     for i in range(Ncraters):  # For N number of craters
+        print('{} of {} craters added'.format(i, Ncraters))
         diameter = diameter_list[i]; #select the diameter
         cratercenter = (rn_gen.integers(1, grid_size, endpoint = True), rn_gen.integers(1, grid_size, endpoint = True));
         d = mg.calc_distances_of_nodes_to_point(cratercenter); #print(d)
@@ -513,9 +513,9 @@ def plot_grid(mg, grid_size, cell_size, Title='Title'):
     fig, ax = plt.subplots() #initiate figure
     img1 = plt.imshow(hill, cmap=cmap1, alpha=1, extent = [0,grid_size, 0, grid_size]) #plot hillshade
     img2 = plt.imshow(topo, cmap=cmap2, alpha=0.6, extent = [0,grid_size, 0, grid_size]) #plot topograpy
-    fig.colorbar(img2,ax=ax, label="Elevation [km]") #add & label the colorbar
+    fig.colorbar(img2,ax=ax, label="Elevation [m]") #add & label the colorbar
     plt.title(Title); #add a title
-    plt.xlabel("X [km]"); plt.ylabel("Y [km]") #add x and y axis labels
+    plt.xlabel("X [m]"); plt.ylabel("Y [m]") #add x and y axis labels
     plt.show() #show the figure
     
     
