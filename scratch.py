@@ -49,7 +49,7 @@ mg = make_noisy_surface(grid_size, cell_size, slope = slope, rf=1);
 
 ### (2) Add Craters to the background
 ###############################
-mg = add_craters2(mg, time_interval, size_interval, int(grid_size/1000), (cell_size/1000), poisson_intervals=poisson, rim = True);
+mg = add_craters2(mg, time_interval, size_interval, poisson_intervals=poisson, rim = True);
 
 ## Plot
 imshow_grid(mg, 'topographic__elevation', cmap="Spectral_r", colorbar_label = 'Elevation (m)')  # plot the elevation field values
@@ -59,7 +59,7 @@ show();
 
 #### (3) Add a Central Crater (with NO RIM):
 ############################################
-mg = central_crater(mg, cc_d, grid_size, cell_size, rim = False);
+mg = central_crater(mg, cc_d, rim = False);
 
 imshow_grid(mg, 'topographic__elevation', cmap="Spectral_r", colorbar_label = 'Elevation (m)')  # plot the elevation field values
 plt.title('(3) Grid with a Central Crater'); #add a title

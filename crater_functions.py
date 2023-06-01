@@ -32,9 +32,10 @@ def weights(minD, maxD):
     
     Returns
     ----------
-    i : ?
+    i : weight
     """ 
-
+    rn_gen = np.random.default_rng(seed=seed);
+    
     ###  These parameters describe the population frequency for crater diameters:
     Kx = 1.0    #Scaling coefficient (Howard, 2007)
     delta = 2.0 #km, scaling exponent (Howard, 2007)
@@ -55,25 +56,25 @@ def make_noisy_surface(grid_size, cell_size, slope = 0, rf=1):
      Parameters
     ----------
     grid size : integer
-        Size of the domain, in km 
+        Size of the domain, in m 
         (note: domain is square so length = width)
     
     cell_size : integer
-        Size of each cell in km.
+        Size of each cell in m.
         
     slope: int, float
         The slope (rise over run) to apply to the model grid (default = 0, i.e. flat surface).
     
     rf : int, float
-        The multiplier (in km) to add to increase or decrease randomness by factor rf. 
-        (randomness factor, default = 1)
+        The multiplier (in m) to add to increase or decrease randomness by factor rf. 
+        (randomness factor, default = 1, i.e. no extra scaling)
         
     Returns
     ----------
     mg : landlab.grid.raster.RasterModelGrid
         Landlab raster model grid of the landscape
     '''
-    rn_gen = np.random.default_rng(seed=1);
+    rn_gen = np.random.default_rng(seed=seed);
     
     xy = int(grid_size / cell_size) ## The number of cells along each axis of the domain (i.e. length in # cells)
     
@@ -90,7 +91,7 @@ def make_noisy_surface(grid_size, cell_size, slope = 0, rf=1):
     return mg
 
 
-def crater_depth(mg, d, diameter, d_ref=7, rim = True):
+def crater_depth(mg, d, diameter, rim = True):
     """
     Define changes to topography due to impact crater formation (including out of crater, i.e. ejecta addition) . 
     Note: This implementation is based on that of Howard (2007) and that MARSSIM model, (written in Fortran)
@@ -100,16 +101,13 @@ def crater_depth(mg, d, diameter, d_ref=7, rim = True):
     mg : landlab.grid.raster.RasterModelGrid
         Landlab raster model grid of the landscape
    
-    d : np.ndarray
-        Array of distances of nodes to the center of the crater (distances in km).
+    d : np.ndarray 
+        Array of distances of nodes to the center of the crater.
+        In the same units as the grid (i.e. if grid is in meters, the units for d will be in meters)
         From `landlab.grid.raster.RasterModelGrid.calc_distances_of_nodes_to_point`
     
-    diameter : int, float
+    diameter : int, float ** IMPORTANT THAT IT IS INPUT IN KILOMETERS NOT METERS ***
         Diameter of the crater (in km)
-
-    d_ref: int, float
-        Diameter at which craters transition from "simple" to "complex" structural type
-        Default = 7 km (relevant to Mars)
         
     rim : boolean, default = True
         whether the crater generated has a crater rim or not. 
@@ -267,26 +265,28 @@ def generate_CSFD_from_production_function(
 
     Parameters
     ----------
-    time_interval
+    time_interval 
         2-element list of start time and end time in Ga (billion years ago), e.g. [4.5, 3.0]
 
-    size_interval
+    size_interval ** IMPORTANT THAT IT IS INPUT IN KILOMETERS NOT METERS ***
         2-element list of smallest and largest diameter craters to generate in km.
 
-    domain_area : int
+    domain_area : int ** IMPORTANT THAT IT IS INPUT IN KILOMETERS NOT METERS ***
         domain area in km2.
         
-    cell_size : int
+    cell_size : int ** IMPORTANT THAT IT IS INPUT IN KILOMETERS NOT METERS ***
         size of 1 cell, in km
 
     poisson_intervals
-        Use Poisson spaced events? (otherwise just expectation interval).
+        Use Poisson spaced events (otherwise just expectation interval).
         
     Returns
     ---------
     list_d : list
         list of crater diameters generated in the specified time interval, for the specified domain area size.
+        units are kilometers
     """
+    rn_gen = np.random.default_rng(seed=seed);
 
     # production and chronology functions from "craterstats"
     production_function = cst.Productionfn(craterstats_functions, "Mars, Ivanov (2001)")
@@ -341,7 +341,7 @@ def generate_CSFD_from_production_function(
     return list_d
 
 
-def add_craters1(mg, grid_size, cell_size, Ncraters, minD, maxD, rim = True):
+def add_craters1(mg, Ncraters, minD, maxD, rim = True):
     """
     Add craters to some landlab raster model, using functions "weights" and "crater_depth" 
     NOTE: The function "add_craters2" is a method which adds a more realistic ditribution of craters
@@ -351,13 +351,6 @@ def add_craters1(mg, grid_size, cell_size, Ncraters, minD, maxD, rim = True):
     ----------
     mg : landlab.grid.raster.RasterModelGrid
         Landlab raster model grid of the landscape
-        
-    grid size : integer
-        Size of the domain, in km 
-        (note: domain is square so length = width)
-    
-    cell_size : integer
-        Size of each cell in km.
         
     Ncraters : int
         Number of craters that impact
@@ -377,22 +370,22 @@ def add_craters1(mg, grid_size, cell_size, Ncraters, minD, maxD, rim = True):
         Landlab raster model grid after craters have modified the topography
 
     """
-    rn_gen = np.random.default_rng(seed=1); ## create an instance of the Generator class
+    rn_gen = np.random.default_rng(seed=seed); ## create an instance of the Generator class
+    xy = mg.number_of_node_columns; #number of cells/nodes
+    cell_size = mg.dx; #size of 1 cell, m (grid units)
+    grid_size = int(cell_size * xy); #length of grid, m (grid units)
     
-    xy = int(grid_size / cell_size);
-
     for i in range(Ncraters):  # For N number of craters
         a = weights(minD, maxD);
         diameter = list(range(minD, maxD))[a]
         cratercenter = (rn_gen.integers(1, grid_size, endpoint=True), rn_gen.integers(1, grid_size, endpoint = True))
         d = mg.calc_distances_of_nodes_to_point(cratercenter)
 
-        crater_depth(mg, d, diameter, d_ref=7, rim = rim)
+        crater_depth(mg, d, diameter, rim = rim)
 
     return mg
 
-def add_craters2(mg, time_interval, size_interval, grid_size, cell_size,
-    poisson_intervals=True, rim = True):
+def add_craters2(mg, time_interval, size_interval, poisson_intervals=True, rim = True):
     """
     Add craters to a pre-defined landlab raster grid model.
     'add_craters2' USES TWO FUNCTIONS CREATED BY ANDREW MOODIE BASED ON CSFDs and "craterstats": 
@@ -409,22 +402,14 @@ def add_craters2(mg, time_interval, size_interval, grid_size, cell_size,
     time_interval : 2-element list
         2-element list of start time and end time in Ga.
 
-    size_interval : 2-element list
+    size_interval : 2-element list ** IMPORTANT THAT IT IS INPUT IN KILOMETERS NOT METERS ***
         2-element list of smallest and largest diameter craters to generate in km.
 
-    grid size : integer
-        Size of the domain, in km 
-        (note: domain is square so length = width)
-    
-    cell_size : integer
-        Size of each cell in km.
-
-    domain_area
+    domain_area ** IMPORTANT THAT IT IS INPUT IN KILOMETERS NOT METERS ***
         domain area in km2.
 
     poisson_intervals
         Use Poisson spaced events? (otherwise just expectation interval).
-
         
     rim : boolean, default = True
         whether the crater generated has a crater rim or not.
@@ -436,14 +421,19 @@ def add_craters2(mg, time_interval, size_interval, grid_size, cell_size,
         Landlab raster model grid after craters have modified the topography
 
     """
-    domain_area = grid_size * grid_size;
+    rn_gen = np.random.default_rng(seed=seed);
+    
+    ## Get properties (size) of the grid
+    xy = mg.number_of_node_columns; #number of cells/nodes
+    cell_size = mg.dx/1000; #size of 1 cell, km, (grid units = m, so /1000 to get km)
+    grid_size = int(cell_size * xy)/1000; #length of grid, km (grid units = m, so /1000 to get km)
+    domain_area = grid_size * grid_size; ## km2
     
     print('generating CSFD...');
     diameter_list = generate_CSFD_from_production_function(time_interval, size_interval, domain_area, cell_size,
                                                            poisson_intervals=poisson_intervals);
     
     Ncraters = len(diameter_list);
-    
     print('adding craters...');
     for i in range(Ncraters):  # For N number of craters
         print('{} of {} craters added'.format(i, Ncraters))
@@ -451,47 +441,42 @@ def add_craters2(mg, time_interval, size_interval, grid_size, cell_size,
         cratercenter = (rn_gen.integers(1, grid_size*1000, endpoint = True), rn_gen.integers(1, grid_size*1000, endpoint = True));
         d = mg.calc_distances_of_nodes_to_point(cratercenter); #print(d)
         
-        crater_depth(mg, d, diameter, d_ref=7, rim = rim); 
+        crater_depth(mg, d, diameter, rim = rim); 
     
     return mg
 
 
-def central_crater(mg, diameter, grid_size, cell_size, rim = True):
-	"""
-	Add a central crater to a Landlab raster model grid
-	
-	Parameters
-	----------
-	mg : Landlab.grid.raster.RasterModelGrid
-	Landlab raster model grid of the landscape
-	
-	diameter: int
-	Diameter of crater to be added at the central node
-	
-    grid size : integer
-        Size of the domain, in km 
-        (note: domain is square so length = width)
+def central_crater(mg, diameter, rim = True):
+    """
+    Add a central crater to a Landlab raster model grid
+    Parameters
+    ----------
+    mg : Landlab.grid.raster.RasterModelGrid
+        Landlab raster model grid of the landscape
     
-    cell_size : integer
-        Size of each cell in km.
+    diameter: int ** IMPORTANT THAT IT IS INPUT IN KILOMETERS NOT METERS ***
+        Diameter of crater to be added at the central node, in km
     
     rim : boolean, default = True
-	whether or not the central crater has a rim (True) or no rim (False). 
-    This argument is passed to the function crater_depth
+        whether or not the central crater has a rim (True) or no rim (False). 
+        This argument is passed to the function crater_depth
     
-	Returns
-	-------
-	mg : landlab.grid.raster.RasterModelGrid
-	Landlab raster model grid after a central crater has modified the topography
-
-	"""
-	xy = int( grid_size / cell_size);
-
-	d = mg.calc_distances_of_nodes_to_point( (int((grid_size)/2), int((grid_size)/2)) );
-
-	crater_depth(mg, d, diameter, d_ref=7, rim = rim);
-	
-	return(mg)
+    Returns
+    -------
+    mg : landlab.grid.raster.RasterModelGrid
+        Landlab raster model grid after a central crater has modified the topography
+    """
+    #### Get properties (size) of the grid
+    xy = mg.number_of_node_columns; #number of cells/nodes 
+    cell_size = mg.dx; #size of 1 cell, km, (grid units = m, so /1000 to get km)
+    grid_size = int(cell_size * xy); #length of grid, km (grid units = m, so /1000 to get km)
+    ### xy = int( grid_size / cell_size);
+    
+    d = mg.calc_distances_of_nodes_to_point( (int((grid_size)/2), int((grid_size)/2)) );
+    
+    crater_depth(mg, d, diameter, rim = rim);
+    
+    return(mg)
 
 def plot_topo_profile(mg, grid_size, cell_size, Title = 'Title'):
     """
@@ -501,11 +486,11 @@ def plot_topo_profile(mg, grid_size, cell_size, Title = 'Title'):
 	Landlab raster model grid of the landscape
     
     grid size : integer
-        Size of the domain, in km 
+        Size of the domain, in m 
         (note: domain is square so length = width)
     
     cell_size : integer
-        Size of each cell in km.
+        Size of each cell in m.
         
     Title : string
     title to add to the plot
@@ -518,9 +503,10 @@ def plot_topo_profile(mg, grid_size, cell_size, Title = 'Title'):
     """
     xy = int(grid_size / cell_size);
     y = mg.field_values('node', 'topographic__elevation').reshape((xy, xy))[int(xy/2)]; #reshape the topography so it's easy to find the midpoint row (index = xy/2)
-    x = (np.arange(xy) + 1); #create the x values (from 1 to xy)
+    x = np.arange(xy)*cell_size; #create the x values (from 1 to xy)
     plt.plot(x, y, 'k-'); #create the plot, with a black line for topography
     plt.title(Title); #add a title
+    plt.xlabel("X [m]"); plt.ylabel("Elevation [m]") #add x and y axis labels
     plt.show() #display the figure
     
 
