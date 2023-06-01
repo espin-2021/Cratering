@@ -13,8 +13,10 @@ from packaging import version
 import craterstats as cst
 from landlab import RasterModelGrid
 from landlab import imshow_grid
+import math
 
-rn_gen = np.random.default_rng(seed=3);
+seed = 3
+rn_gen = np.random.default_rng(seed=seed);
 
 def weights(minD, maxD):
     """ randomly generate a number and see which weight number in the input list it falls under,
@@ -90,7 +92,8 @@ def make_noisy_surface(grid_size, cell_size, slope = 0, rf=1):
 
 def crater_depth(mg, d, diameter, d_ref=7, rim = True):
     """
-    Define in and out of crater changes to topography.
+    Define changes to topography due to impact crater formation (including out of crater, i.e. ejecta addition) . 
+    Note: This implementation is based on that of Howard (2007) and that MARSSIM model, (written in Fortran)
 
     Parameters
     ----------
@@ -116,9 +119,16 @@ def crater_depth(mg, d, diameter, d_ref=7, rim = True):
     mg : landlab.grid.raster.RasterModelGrid
         Landlab raster model grid after crater has modified the topography
     """
+    ## Some Parameters to set
+    rn_gen = np.random.default_rng(seed=seed); ## initialize the random number generator
+    ejecta_noise = 0.05; ##ejecta noise standard deviation
+    I = 1; ##inheritance parameter (between 0.5 to 1.0)
+    
     diameter *= 1000; #convert input to meters
     radius = (diameter/2); #convert input to meters
 
+    ## Check if it's simple or complex, and compute the shape parameters accordingly
+    ## d_ref = 7 km on Mars (diameter for transition from simple to complex craters, where the shape changes!)
     if diameter <= 7000: #for a simple crater
         H1 = 2.54*diameter**0.67; #crater depth, in km
         H2 = 1.93*diameter**0.52; #max rim height, in km
@@ -129,33 +139,68 @@ def crater_depth(mg, d, diameter, d_ref=7, rim = True):
         H2 = 0.79*diameter**0.6; #max rim height, in km
         m = 0.64*(diameter)**0.13;  # value: 2 to 3
 
+    H2H1 = H2 - H1; #in km
     # Howard et al, 2007:
     # "The exponent n is constrained such that volume deposited on the rim
     # equals the volume excavated from the bowl and ranges from a value of
     # about 3 for a 7 km crater to 3.5 for a 250 km crater.""
-    n = 3;
-    H2H1 = H2 - H1; #in km
-
-    if rim == True: ## (DEFAULT) If the user wants the craters to have a rim
-        in_idx = np.where(d <= radius)[0];
-        # equation for inside the crater
-        inDepth = H2H1 + H1*(  (2*d[in_idx])/diameter  )**m; # in km
-        mg.at_node['topographic__elevation'][in_idx] += inDepth; ## in m
+    n = 2 - (H2 / ( (H2H1)/2 + H1/(m+2) )) ; ## crater exterior shape exponent;
     
-        out_idx = np.where(d > radius)[0];
-        # equation for outside the crater (ejecta!)
-        outDepth = H2*(  (2*d[out_idx])/diameter  )**-n; # in km
-        mg.at_node['topographic__elevation'][out_idx] += outDepth; ## in m
+    ## Calculate Noise:
+    noise1 = ejecta_noise / (math.exp(1) * math.exp(1)-1.0)**0.5; ## from Tim's version of Howard (2007) MARSSIM fortran code 
+    noise2 = ( 1.0 - 0.5*noise1 ) * noise1; ## from Tim's version of Howard (2007) MARSSIM fortran code 
+    Z_noise =  rn_gen.lognormal(mean = 0, sigma = noise2);## from Tim's version of Howard (2007) MARSSIM fortran code 
+
+    ## Add the shape to the model grid
+    ## Note: same maths for each "if", but if the user sets rim = False, no rim topo is added! :)
+    
+    if rim == True: ## (DEFAULT) If the user wants the craters to have a rim
+        in_idx = np.where(d <= radius)[0]; ## define the area inside the crater
+        out_idx = np.where(d > radius)[0]; ## define the area outside the crater
+        
+        ## Reference Elevation
+        Z_in = mg.at_node['topographic__elevation'][in_idx]; ## the Z array for topo in the crater
+        Z_out = mg.at_node['topographic__elevation'][out_idx]; ## the Z array for topo outside the crater
+        avgin = np.average(Z_in); # in meters, the average elevation inside the crater
+        avgout = np.average(Z_out); # in meters, the average elevation outside the crater
+        E_ref_in = Z_in;  ## The reference elevation inside the crater, is just the Z array (no calculations);
+        E_ref_out = avgin + avgout*(d[out_idx] / radius)**-n; #The reference elevation outside the crater is an equation (Howard, 2007)
+        
+        # Equations for inside the crater
+        DH_in = H2H1 + Z_noise*H1*(  (2*d[in_idx])/diameter  )**m; #in meters, calculate the array of Z describing the shape of the crater
+        DE_in = DH_in + 1*(E_ref_in - Z_in)*(1 - I*(d[in_idx]/radius)**2); ## calculate the array of Z values to add (accounting for inheritance & noise)
+        mg.at_node['topographic__elevation'][in_idx] += DE_in; #add the Z
+    
+        ## equations for outside the crater   
+        DH_out = H2*(  (2*d[out_idx])/diameter  )**-n; # in meters; calculate the array of Z values to add
+        G = []; #initialize array for parameter G at each node
+        for i in np.arange(0, len(out_idx), 1):
+            Gi = np.min( [(1 - I), (DH_out[i]/H2)] );
+            G.append(Gi);
+        DE_out = DH_out + G*(E_ref_out - Z_out);
+        mg.at_node['topographic__elevation'][out_idx] += DE_out; ## add the Z
     
     elif rim == False: ## If the user doesn't want the crater to have any rims
-        in_idx = np.where(d <= radius * 0.9)[0]; #Only excavate the crater for the first 90% of the crater radius
+        in_idx = np.where(d <= radius * 0.9)[0] #Only excavate the crater for the first 90% of the crater radius
         ##90% of the crater radius ensures there's no rim on the crater for craters up to about 500 km in diameter
-        ## For much smaller craters (< 250 km), a smaller value than 90% could be used, but it still makes a reasonable crater
+        ## For much smaller craters (< 250 km), a larger value than 90% could be used, but it still makes a reasonable crater
+        out_idx = np.where(d > radius*0.9)[0]; ## define the area outside the crater
         
-        # equation for inside the crater
-        inDepth = H2H1 + H1*(  (2*d[in_idx])/(diameter)  )**m; #in km
-        mg.at_node['topographic__elevation'][in_idx] += inDepth; ## in m
+        ## Reference Elevation
+        Z_in = mg.at_node['topographic__elevation'][in_idx];
+        avgin = np.average(Z_in); # in meters
+        E_ref_in = Z_in; ## divide by the "weight" at some point?
+        
+        # equations for inside the crater
+        # ## MY TRANSLATION OF TIMS CODE: DH_in = (H2 - H1) + Z_noise*H1*( (d[in_idx]/radius)**m    ); ## is this missing a x2 in the numerator????
+        DH_in = H2H1 + H1*(  (2*d[in_idx])/diameter  )**m; #in meters, calculate the array of Z describing the shape of the crater
+        DE_in = DH_in + 1*(E_ref_in - Z_in)*(1 - I*(d[in_idx]/radius)**2); ## calculate the array of Z values to add (accounting for inheritance & noise)
+        mg.at_node['topographic__elevation'][in_idx] += DE_in; #add the Z
     
+        ## equations for outside the crater   
+        mg.at_node['topographic__elevation'][out_idx] += 0; ## add the Z
+        
+        ## No Z is added outside the crater, to avoid adding a rim! :) (and if the rim is eroded, can assume the ejecta is pretty eroded/neglible as well).
      
     return mg
 
@@ -403,7 +448,7 @@ def add_craters2(mg, time_interval, size_interval, grid_size, cell_size,
     for i in range(Ncraters):  # For N number of craters
         print('{} of {} craters added'.format(i, Ncraters))
         diameter = diameter_list[i]; #select the diameter
-        cratercenter = (rn_gen.integers(1, grid_size, endpoint = True), rn_gen.integers(1, grid_size, endpoint = True));
+        cratercenter = (rn_gen.integers(1, grid_size*1000, endpoint = True), rn_gen.integers(1, grid_size*1000, endpoint = True));
         d = mg.calc_distances_of_nodes_to_point(cratercenter); #print(d)
         
         crater_depth(mg, d, diameter, d_ref=7, rim = rim); 
