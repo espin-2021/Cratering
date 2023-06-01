@@ -375,6 +375,8 @@ def add_craters1(mg, Ncraters, minD, maxD, rim = True):
     cell_size = mg.dx; #size of 1 cell, m (grid units)
     grid_size = int(cell_size * xy); #length of grid, m (grid units)
     
+    print('   ---> not using CSFD...');
+    print('   ---> adding {} craters...'.format(Ncraters));
     for i in range(Ncraters):  # For N number of craters
         a = weights(minD, maxD);
         diameter = list(range(minD, maxD))[a]
@@ -426,17 +428,16 @@ def add_craters2(mg, time_interval, size_interval, poisson_intervals=True, rim =
     ## Get properties (size) of the grid
     xy = mg.number_of_node_columns; #number of cells/nodes
     cell_size = mg.dx/1000; #size of 1 cell, km, (grid units = m, so /1000 to get km)
-    grid_size = int(cell_size * xy)/1000; #length of grid, km (grid units = m, so /1000 to get km)
+    grid_size = int(cell_size * xy); #length of grid, km (grid units = m, so /1000 to get km)
     domain_area = grid_size * grid_size; ## km2
     
-    print('generating CSFD...');
+    print('   ---> generating CSFD...');
     diameter_list = generate_CSFD_from_production_function(time_interval, size_interval, domain_area, cell_size,
                                                            poisson_intervals=poisson_intervals);
     
     Ncraters = len(diameter_list);
-    print('adding craters...');
+    print('   ---> adding {} craters...'.format(Ncraters));
     for i in range(Ncraters):  # For N number of craters
-        print('{} of {} craters added'.format(i, Ncraters))
         diameter = diameter_list[i]; #select the diameter
         cratercenter = (rn_gen.integers(1, grid_size*1000, endpoint = True), rn_gen.integers(1, grid_size*1000, endpoint = True));
         d = mg.calc_distances_of_nodes_to_point(cratercenter); #print(d)
