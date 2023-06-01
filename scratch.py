@@ -4,20 +4,20 @@ Created on Thu May 11 07:28:28 2023
 
 @author: erb2734
 """
-
 from crater_functions import *
 
 import numpy as np
 import copy
 import random as rdm
 import time
-from matplotlib.pyplot import title, show, figure, plot, subplot, xlabel, ylabel, cm
+from matplotlib.pyplot import title, show, figure, plot, subplot, xlabel, ylabel, cm, clf
 from landlab import RasterModelGrid, RadialModelGrid, imshow_grid, NodeStatus
-from landlab.components import FlowAccumulator, FastscapeEroder, ChannelProfiler, DepressionFinderAndRouter
+from landlab.components import FlowAccumulator, FastscapeEroder, ChannelProfiler, DepressionFinderAndRouter, ErosionDeposition
 from landlab.plot.imshow import imshow_grid_at_node
 from landlab.values import random, plane
 from landlab.io.esri_ascii import read_asc_header, read_esri_ascii, write_esri_ascii
-
+# import warnings
+# warnings.filterwarnings("ignore")
 
 ### Set up parameters of the grid
 grid_size = 10000 #grid length distance in m
@@ -26,7 +26,7 @@ cell_size = 100 #size of a cell, m
 slope = 0.003
 time_interval = [4.0, 3.9]
 size_interval = [1, 5]
-poisson_intervals = True;
+poisson = True;
 
 cc_d = 8 # diameter of the central crater ('cc'), (km)
 
@@ -37,23 +37,38 @@ figdir = 'C:/Users/erb2734/Documents/LANDSCAPE-EVOLUTION-MODELS/code-notebooks-e
 griddir = 'C:/Users/erb2734/Documents/LANDSCAPE-EVOLUTION-MODELS/code-notebooks-etc/grids/'
 ### ASCII file saving info: https://landlab.readthedocs.io/en/master/reference/io/esri_ascii.html#landlab.io.esri_ascii.read_esri_ascii
 
-#### Plot the rough background:
+#### (1) Plot the rough background:
 ###############################
 mg = make_noisy_surface(grid_size, cell_size, slope = slope, rf=1);
-plot_grid(mg, grid_size, cell_size, Title='1.1, initial nosiy sloping');
 
-### Add Craters
-mg = add_craters2(mg, time_interval, size_interval, int(grid_size/1000), (cell_size/1000), 
-                  poisson_intervals=True, rim = True);
-plot_grid(mg, grid_size, cell_size, Title='background');
+## Plot
+# imshow_grid(mg, 'topographic__elevation', cmap="Spectral_r", colorbar_label = 'Elevation (m)')  # plot the elevation field values
+# plt.title('(1) Background (noisy, sloping)'); #add a title
+# plt.xlabel("X [m]"); plt.ylabel("Y [m]") #add x and y axis labels
+# show();
 
-#### Add a Central Crater with NO RIM:
-###########################
+### (2) Add Craters to the background
+###############################
+mg = add_craters2(mg, time_interval, size_interval, int(grid_size/1000), (cell_size/1000), poisson_intervals=poisson, rim = True);
+
+## Plot
+imshow_grid(mg, 'topographic__elevation', cmap="Spectral_r", colorbar_label = 'Elevation (m)')  # plot the elevation field values
+plt.title('(2) Background (w. craters)'); #add a title
+xlabel("X [m]"); ylabel("Y [m]") #add x and y axis labels
+show();
+
+#### (3) Add a Central Crater (with NO RIM):
+############################################
 mg = central_crater(mg, cc_d, grid_size, cell_size, rim = False);
-plot_grid(mg, grid_size, cell_size, Title='1.2, initial w. central crater');
+
+imshow_grid(mg, 'topographic__elevation', cmap="Spectral_r", colorbar_label = 'Elevation (m)')  # plot the elevation field values
+plt.title('(3) Grid with a Central Crater'); #add a title
+plt.xlabel("X [m]"); plt.ylabel("Y [m]") #add x and y axis labels
+show();
+
 
 # #### Save the model grid, for ease of access later:
-# f = griddir + 'temp-initial-crater.asc'
+# f = griddir + 'temp-grid.asc'
 # write_esri_ascii(f, mg, clobber = True);   ## Save the raster model grid as an ascii file
  
 
@@ -78,7 +93,7 @@ plot_grid(mg, grid_size, cell_size, Title='1.2, initial w. central crater');
 #     return pf
 
 # #### Set up parameters of the grid & landlab models
-# kt = 1.0 ; #"threshold_sp"; 
+# kt = 0.0 ; #"threshold_sp"; 
 # min_channel_thresh = 10; #for channel profile plotting ('channel profiler')
 # dt = 1. ; ## timestep length
 # steps = 30; ## number of steps
