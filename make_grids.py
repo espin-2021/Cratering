@@ -6,6 +6,7 @@ Created on Thu Jun  1 07:04:30 2023
 """
 from crater_functions import *
 import time
+from datetime import datetime
 import copy
 import numpy as np
 from matplotlib.pyplot import title, figure, show, cm, clf
@@ -17,6 +18,9 @@ from landlab.components import ChannelProfiler, FastscapeEroder, FlowAccumulator
 # warnings.filterwarnings("ignore")
 
 start = time.process_time(); #Start time, just for timing purposes.
+## dd/mm/YY H:M:S
+now = datetime.now()
+print("date and time =", now.strftime("%d/%m/%Y %H:%M:%S"))
 
 ## Set file paths for saving
 figdir = 'C:/Users/erb2734/Documents/landscape-evolution/initial-grids/'; ## on lab comp
@@ -103,6 +107,11 @@ for cell_size in [20, 10]: #meters,  ## 100, 50,
             write_esri_ascii(figdir+'grid-'+f+'.asc', mg, clobber = True);   ## Save the raster model grid as an ascii file
     
             print( (time.process_time() - start)/60, 'min : model grid with noise, slope, + central crater (rimless) [saved]');
+            ## dd/mm/YY H:M:S
+            now = datetime.now()
+            print("date and time =", now.strftime("%d/%m/%Y %H:%M:%S"))
+
+
 
 start2 = time.process_time(); #Start time, just for timing purposes.
 ##### Option (B) Make grids without craters on the background
@@ -137,5 +146,12 @@ for cell_size in [100, 50, 20, 10]: #meters,
     ### (4) Save the grid! (as an ascii file, using landlab save as ascii function)
     write_esri_ascii(griddir+'grid-'+f+'.asc', mg, clobber = True);   ## Save the raster model grid as an ascii file
     print( (time.process_time() - start2)/60, 'min : model grid with noise, slope, + central crater (rimless) [saved]');
+    ## dd/mm/YY H:M:S
+    now = datetime.now()
+    print("date and time =", now.strftime("%d/%m/%Y %H:%M:%S"))
+
 
 print( (time.process_time() - start)/60, 'min : total time for all grid generation');
+## dd/mm/YY H:M:S
+now = datetime.now()
+print("date and time =", now.strftime("%d/%m/%Y %H:%M:%S"))
