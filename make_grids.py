@@ -19,8 +19,10 @@ from landlab.components import ChannelProfiler, FastscapeEroder, FlowAccumulator
 start = time.process_time(); #Start time, just for timing purposes.
 
 ## Set file paths for saving
-figdir = 'C:/Users/erb2734/Documents/LANDSCAPE-EVOLUTION-MODELS/code-notebooks-etc/initial-grids/'
-griddir = 'C:/Users/erb2734/Documents/LANDSCAPE-EVOLUTION-MODELS/code-notebooks-etc/initial-grids/'
+figdir = 'C:/Users/erb2734/Documents/landscape-evolution/initial-grids/'; ## on lab comp
+griddir = 'C:/Users/erb2734/Documents/landscape-evolution/initial-grids/'; ## on lab comp
+## figdir = 'C:/Users/erb2734/Documents/LANDSCAPE-EVOLUTION-MODELS/code-notebooks-etc/initial-grids/'; ## on laptop
+## griddir = 'C:/Users/erb2734/Documents/LANDSCAPE-EVOLUTION-MODELS/code-notebooks-etc/initial-grids/' ## on laptop
 ### ASCII file saving info: https://landlab.readthedocs.io/en/master/reference/io/esri_ascii.html#landlab.io.esri_ascii.read_esri_ascii
  
 cmap2 = copy.copy(cm.get_cmap("Spectral_r")); #define colour scheme for the topography
@@ -46,7 +48,7 @@ cc_d = 10; # diameter of the central crater ('cc'), (km)
 ## e.g. generate an array of locations plus the CSFD for [1/0.5, 2/5] and use it for all the simulations
 
 ### Option (A) Make Grids with craters on the background
-for cell_size in [100, 50, 20, 10]: #meters,  ## 100, 50, 20
+for cell_size in [20, 10]: #meters,  ## 100, 50, 
     cell_size = cell_size; #m, cell size
     xy = int(grid_size / cell_size); ## number of nodes
     
